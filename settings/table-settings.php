@@ -40,6 +40,19 @@ class PLL_Table_Settings extends WP_List_Table {
 	 * @param object $item PLL_Settings_Module object
 	 */
 	public function single_row( $item ) {
+
+		// XTEC ************ AFEGIT - Hide some modules except for the user xtecadmin
+		// 2017.02.28 @xaviernietosanchez
+		$moduleExclude = array(
+			'share-slugs',
+			'translate-slugs',
+			'licenses'
+		);
+
+		if( is_xtec_super_admin() || array_search($item->module,$moduleExclude) === false ){
+		// ************ FI
+
+
 		// Classes to reuse css from the plugins list table
 		$classes = $item->is_active() ? 'active' : 'inactive';
 		if ( $message = $item->get_upgrade_message() ) {
@@ -82,6 +95,11 @@ class PLL_Table_Settings extends WP_List_Table {
 				esc_attr( $item->module ), esc_html( $item->title ), $form, implode( $item->get_buttons() )
 			);
 		}
+
+		// XTEC ************ AFEGIT - Hide except for the user xtecadmin
+		// 2017.02.28 @xaviernietosanchez
+		}
+		// ************ FI
 	}
 
 	/**

@@ -101,6 +101,11 @@ class PLL_Settings extends PLL_Admin_Base {
 	 */
 	public function load_page() {
 		if ( ! defined( 'PLL_DISPLAY_ABOUT' ) || PLL_DISPLAY_ABOUT ) {
+
+			// XTEC ************ AFEGIT - Display only for xtecadmin
+			// 2017.02.21 @xaviernietosanchez
+			if ( is_xtec_super_admin() ){
+			// ************ FI
 			add_meta_box(
 				'pll-about-box',
 				__( 'About Polylang', 'polylang' ),
@@ -108,6 +113,11 @@ class PLL_Settings extends PLL_Admin_Base {
 				'settings_page_mlang', // FIXME not shown in screen options
 				'normal'
 			);
+			// XTEC ************ AFEGIT - Display only for xtecadmin
+			// 2017.02.21 @xaviernietosanchez
+			}
+			// ************ FI
+
 		}
 
 		add_screen_option( 'per_page', array(
