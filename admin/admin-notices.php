@@ -74,6 +74,19 @@ class PLL_Admin_Notices {
 	 * @return bool
 	 */
 	public static function is_dismissed( $notice ) {
+
+		// XTEC ************ AFEGIT - Hidden to all users but xtecadmin
+		// 2021.04.29 @aginard
+		if ( ! is_xtec_super_admin() ) {
+		//************ FI
+
+			return true;
+
+		// XTEC ************ AFEGIT - Hidden to all users but xtecadmin
+		// 2021.04.29 @aginard
+		}
+		//************ FI
+
 		$dismissed = get_option( 'pll_dismissed_notices', array() );
 
 		// Handle legacy user meta
