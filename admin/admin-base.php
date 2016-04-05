@@ -19,8 +19,13 @@ class PLL_Admin_Base extends PLL_Base {
 	public function __construct( &$links_model ) {
 		parent::__construct( $links_model );
 
+		// XTEC ************ ELIMINAT - Change load plugin textdomain with wordpress action and moved to agora-functions.php
+		// 2017.02.21 @xaviernietosanchez
+		/*
 		// Plugin i18n, only needed for backend
 		load_plugin_textdomain( 'polylang', false, basename( POLYLANG_DIR ).'/languages' );
+		*/
+		// ************ FI
 
 		// Adds the link to the languages panel in the WordPress admin menu
 		add_action( 'admin_menu', array( $this, 'add_menus' ) );
@@ -93,7 +98,15 @@ class PLL_Admin_Base extends PLL_Base {
 				add_menu_page( $title, __( 'Languages','polylang' ), 'manage_options', $page, null , 'dashicons-translation' );
 			}
 
+			// XTEC ************ AFEGIT - Display only for xtecadmin
+			// 2017.02.21 @xaviernietosanchez
+			if ( is_xtec_super_admin() || strpos($title,'Lingotek') === false ){
+			// ************ FI
 			add_submenu_page( $parent, $title, $title, 'manage_options', $page , array( $this, 'languages_page' ) );
+			// XTEC ************ AFEGIT - Display only for xtecadmin
+			// 2017.02.21 @xaviernietosanchez
+			}
+			// // ************ FI
 		}
 	}
 
