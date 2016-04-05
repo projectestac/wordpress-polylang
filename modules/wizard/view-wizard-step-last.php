@@ -60,6 +60,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</p>
 		</div>
 	</li>
+
+	<?php
+	// XTEC ************ AFEGIT - Hidden to all users but xtecadmin
+	// 2021.04.29 @aginard
+	if ( ! is_xtec_super_admin() ) {
+		define('POLYLANG_PRO', 'Set');
+	}
+	//************ FI
+	?>
+
 	<?php if ( ! defined( 'POLYLANG_PRO' ) && ! defined( 'WOOCOMMERCE_VERSION' ) ) : ?>
 		<li class="pll-wizard-next-step-item">
 			<div class="pll-wizard-next-step-description">

@@ -46,6 +46,19 @@ class PLL_Table_Settings extends WP_List_Table {
 	 * @return void
 	 */
 	public function single_row( $item ) {
+
+		// XTEC ************ AFEGIT - Hidden to all users but xtecadmin
+		// 2017.02.28 @xaviernietosanchez
+		$moduleExclude = [
+			'share-slugs',
+			'translate-slugs',
+			'licenses'
+		];
+
+		if ( is_xtec_super_admin() || array_search($item->module,$moduleExclude) === false ) {
+		// ************ FI
+
+
 		// Classes to reuse css from the plugins list table
 		$classes = $item->is_active() ? 'active' : 'inactive';
 		if ( $message = $item->get_upgrade_message() ) {
@@ -86,6 +99,11 @@ class PLL_Table_Settings extends WP_List_Table {
 				implode( $item->get_buttons() ) // phpcs:ignore
 			);
 		}
+
+		// XTEC ************ AFEGIT - Hidden to all users but xtecadmin
+		// 2017.02.28 @xaviernietosanchez
+		}
+		// ************ FI
 	}
 
 	/**
