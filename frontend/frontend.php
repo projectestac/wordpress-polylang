@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * frontend controller
  * accessible as $polylang global object
  *
@@ -24,7 +24,7 @@ class PLL_Frontend extends PLL_Base {
 	public $curlang;
 	public $links, $choose_lang, $filters, $filters_search, $nav_menu, $auto_translate;
 
-	/*
+	/**
 	 * constructor
 	 *
 	 * @since 1.2
@@ -34,21 +34,21 @@ class PLL_Frontend extends PLL_Base {
 	public function __construct( &$links_model ) {
 		parent::__construct( $links_model );
 
-		add_action( 'pll_language_defined', array( &$this, 'pll_language_defined' ), 1 );
+		add_action( 'pll_language_defined', array( $this, 'pll_language_defined' ), 1 );
 
 		// avoids the language being the queried object when querying multiple taxonomies
-		add_action( 'parse_tax_query', array( &$this, 'parse_tax_query' ), 1 );
+		add_action( 'parse_tax_query', array( $this, 'parse_tax_query' ), 1 );
 
 		// filters posts by language
-		add_action( 'parse_query', array( &$this, 'parse_query' ), 6 );
+		add_action( 'parse_query', array( $this, 'parse_query' ), 6 );
 
 		// not before 'check_canonical_url'
 		if ( ! defined( 'PLL_AUTO_TRANSLATE' ) || PLL_AUTO_TRANSLATE ) {
-			add_action( 'template_redirect', array( &$this, 'auto_translate' ), 7 );
+			add_action( 'template_redirect', array( $this, 'auto_translate' ), 7 );
 		}
 	}
 
-	/*
+	/**
 	 * setups the language chooser based on options
 	 *
 	 * @since 1.2
@@ -67,7 +67,7 @@ class PLL_Frontend extends PLL_Base {
 		$this->nav_menu = new PLL_Frontend_Nav_Menu( $this );
 	}
 
-	/*
+	/**
 	 * setups filters and nav menus once the language has been defined
 	 *
 	 * @since 1.2
@@ -80,7 +80,7 @@ class PLL_Frontend extends PLL_Base {
 	}
 
 
-	/*
+	/**
 	 * when querying multiple taxonomies, makes sure that the language is not the queried object
 	 *
 	 * @since 1.8
@@ -95,7 +95,7 @@ class PLL_Frontend extends PLL_Base {
 		}
 	}
 
-	/*
+	/**
 	 * modifies some query vars to "hide" that the language is a taxonomy and avoid conflicts
 	 *
 	 * @since 1.2
@@ -104,17 +104,16 @@ class PLL_Frontend extends PLL_Base {
 	 */
 	public function parse_query( $query ) {
 		$qv = $query->query_vars;
+		$taxonomies = $this->get_queried_taxonomies( $query );
 
 		// to avoid returning an empty result if the query includes a translated taxonomy in a different language
-		$has_tax = isset( $query->tax_query->queries ) && $this->have_translated_taxonomy( $query->tax_query->queries );
+		$has_tax = isset( $query->tax_query->queries ) && $this->model->have_translated_taxonomy( $query->tax_query->queries );
 
 		// allow filtering recent posts and secondary queries by the current language
 		// take care not to break queries for non visible post types such as nav_menu_items
 		// do not filter if lang is set to an empty value
 		// do not filter single page and translated taxonomies to avoid conflicts
 		if ( ! empty( $this->curlang ) && ! isset( $qv['lang'] ) && ! $has_tax && empty( $qv['page_id'] ) && empty( $qv['pagename'] ) ) {
-			$taxonomies = $this->get_queried_taxonomies( $query );
-
 			if ( $taxonomies && ( empty( $qv['post_type'] ) || 'any' === $qv['post_type'] ) ) {
 				foreach ( $taxonomies as $taxonomy ) {
 					$tax_object = get_taxonomy( $taxonomy );
@@ -129,9 +128,9 @@ class PLL_Frontend extends PLL_Base {
 		}
 
 		// modifies query vars when the language is queried
-		if ( ! empty( $qv['lang'] ) ) {
+		if ( ! empty( $qv['lang'] ) || ( ! empty( $taxonomies ) && array( 'language') == array_values( $taxonomies ) ) ) {
 			// do we query a custom taxonomy?
-			$taxonomies = array_diff( $this->get_queried_taxonomies( $query ) , array( 'language', 'category', 'post_tag' ) );
+			$taxonomies = array_diff( $taxonomies , array( 'language', 'category', 'post_tag' ) );
 
 			// remove pages query when the language is set unless we do a search
 			// take care not to break the single page, attachment and taxonomies queries!
@@ -153,7 +152,7 @@ class PLL_Frontend extends PLL_Base {
 		}
 	}
 
-	/*
+	/**
 	 * auto translate posts and terms ids
 	 *
 	 * @since 1.2
@@ -162,7 +161,7 @@ class PLL_Frontend extends PLL_Base {
 		$this->auto_translate = new PLL_Frontend_Auto_Translate( $this );
 	}
 
-	/*
+	/**
 	 * resets some variables when switching blog
 	 * overrides parent method
 	 *
@@ -183,32 +182,7 @@ class PLL_Frontend extends PLL_Base {
 		}
 	}
 
-	/*
-	 * check if translated taxonomy is queried
-	 * compatible with nested queries introduced in WP 4.1
-	 * @see https://wordpress.org/support/topic/tax_query-bug
-	 *
-	 * @since 1.7
-	 *
-	 * @param array $tax_queries
-	 * @return bool
-	 */
-	protected function have_translated_taxonomy( $tax_queries ) {
-		foreach ( $tax_queries as $tax_query ) {
-			if ( isset( $tax_query['taxonomy'] ) && $this->model->is_translated_taxonomy( $tax_query['taxonomy'] ) && ! ( isset( $tax_query['operator'] ) && 'NOT IN' === $tax_query['operator'] ) ) {
-				return true;
-			}
-
-			// nested queries
-			elseif ( is_array( $tax_query ) && $this->have_translated_taxonomy( $tax_query ) ) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
-	/*
+	/**
 	 * get queried taxonomies
 	 *
 	 * @since 1.8

@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * admin side controller
  * accessible in $polylang global object
  *
@@ -11,7 +11,8 @@
  * links            => inherited, reference to PLL_Admin_Links object
  * static_pages     => inherited, reference to PLL_Admin_Static_Pages object
  * filters_links    => inherited, reference to PLL_Filters_Links object
- * curlang          => inherited, optional, current language used to filter admin content
+ * curlang          => inherited, optional, current language used to filter the content (language of the post or term being edited, equal to filter_lang otherwise)
+ * filter_lang      => inherited, optional, current status of the admin languages filter (in the admin bar)
  * pref_lang        => inherited, preferred language used as default when saving posts or terms
  * filters          => reference to PLL_Filters object
  * filters_columns  => reference to PLL_Admin_Filters_Columns object
@@ -25,7 +26,7 @@
 class PLL_Admin extends PLL_Admin_Base {
 	public $filters, $filters_columns, $filters_post, $filters_term, $nav_menu, $sync, $filters_media;
 
-	/*
+	/**
 	 * loads the polylang text domain
 	 * setups filters and action needed on all admin pages and on plugins page
 	 *
@@ -37,11 +38,11 @@ class PLL_Admin extends PLL_Admin_Base {
 		parent::__construct( $links_model );
 
 		// adds a 'settings' link in the plugins table
-		add_filter( 'plugin_action_links_' . POLYLANG_BASENAME, array( &$this, 'plugin_action_links' ) );
-		add_action( 'in_plugin_update_message-' . POLYLANG_BASENAME, array( &$this, 'plugin_update_message' ), 10, 2 );
+		add_filter( 'plugin_action_links_' . POLYLANG_BASENAME, array( $this, 'plugin_action_links' ) );
+		add_action( 'in_plugin_update_message-' . POLYLANG_BASENAME, array( $this, 'plugin_update_message' ), 10, 2 );
 	}
 
-	/*
+	/**
 	 * setups filters and action needed on all admin pages and on plugins page
 	 * loads the settings pages or the filters base on the request
 	 *
@@ -55,11 +56,11 @@ class PLL_Admin extends PLL_Admin_Base {
 		// setup filters for admin pages
 		// priority 5 to make sure filters are there before customize_register is fired
 		if ( $this->model->get_languages_list() ) {
-			add_action( 'wp_loaded', array( &$this, 'add_filters' ), 5 );
+			add_action( 'wp_loaded', array( $this, 'add_filters' ), 5 );
 		}
 	}
 
-	/*
+	/**
 	 * adds a 'settings' link in the plugins table
 	 *
 	 * @since 0.1
@@ -72,7 +73,7 @@ class PLL_Admin extends PLL_Admin_Base {
 		return $links;
 	}
 
-	/*
+	/**
 	 * adds the upgrade notice in plugins table
 	 *
 	 * @since 1.1.6
@@ -86,7 +87,7 @@ class PLL_Admin extends PLL_Admin_Base {
 		}
 	}
 
-	/*
+	/**
 	 * setup filters for admin pages
 	 *
 	 * @since 1.2
@@ -102,6 +103,14 @@ class PLL_Admin extends PLL_Admin_Base {
 
 		foreach ( $classes as $class ) {
 			$obj = strtolower( $class );
+
+			/**
+			 * Filter the class to instantiate when loding admin filters
+			 *
+			 * @since 1.5
+			 *
+			 * @param string $class class name
+			 */
 			$class = apply_filters( 'pll_' . $obj, 'PLL_Admin_' . $class );
 			$this->$obj = new $class( $this );
 		}

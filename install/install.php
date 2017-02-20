@@ -1,13 +1,13 @@
 <?php
 
-/*
+/**
  * Polylang activation / de-activation class
  *
  * @since 1.7
  */
 class PLL_Install extends PLL_Install_Base {
 
-	/*
+	/**
 	 * plugin activation for multisite
 	 *
 	 * @since 0.1
@@ -22,7 +22,7 @@ class PLL_Install extends PLL_Install_Base {
 		if ( version_compare( $wp_version, PLL_MIN_WP_VERSION , '<' ) ) {
 			die( sprintf( '<p style = "font-family: sans-serif; font-size: 12px; color: #333; margin: -5px">%s</p>',
 				/* translators: %s are WordPress version numbers */
-				sprintf( __( 'You are using WordPress %s. Polylang requires at least WordPress %s.', 'polylang' ),
+				sprintf( esc_html__( 'You are using WordPress %s. Polylang requires at least WordPress %s.', 'polylang' ),
 					esc_html( $wp_version ),
 					PLL_MIN_WP_VERSION
 				)
@@ -31,7 +31,7 @@ class PLL_Install extends PLL_Install_Base {
 		$this->do_for_all_blogs( 'activate', $networkwide );
 	}
 
-	/*
+	/**
 	 * get default Polylang options
 	 *
 	 * @since 1.8
@@ -48,14 +48,14 @@ class PLL_Install extends PLL_Install_Base {
 			'media_support' => 1, // support languages and translation for media by default
 			'uninstall'     => 0, // do not remove data when uninstalling Polylang
 			'sync'          => array(), // synchronisation is disabled by default ( was the opposite before 1.2 )
-			'post_types'    => array_values( get_post_types( array( '_builtin' => false, 'show_ui' => true ) ) ),
-			'taxonomies'    => array_values( get_taxonomies( array( '_builtin' => false, 'show_ui' => true ) ) ),
+			'post_types'    => array(),
+			'taxonomies'    => array(),
 			'domains'       => array(),
 			'version'       => POLYLANG_VERSION,
 		);
 	}
 
-	/*
+	/**
 	 * plugin activation
 	 *
 	 * @since 0.5
@@ -84,7 +84,7 @@ class PLL_Install extends PLL_Install_Base {
 		delete_option( 'rewrite_rules' );
 	}
 
-	/*
+	/**
 	 * plugin deactivation
 	 *
 	 * @since 0.5

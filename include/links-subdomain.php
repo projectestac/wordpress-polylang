@@ -1,39 +1,46 @@
 <?php
 
-/*
- * links model for use when the language code is added in url as a subdomain
+/**
+ * Links model for use when the language code is added in url as a subdomain
  * for example en.mysite.com/something
  * implements the "links_model interface"
  *
  * @since 1.2
  */
-class PLL_Links_Subdomain extends PLL_Links_Permalinks {
+class PLL_Links_Subdomain extends PLL_Links_Abstract_Domain {
 	protected $www;
 
+	/**
+	 * Constructor
+	 *
+	 * @since 1.7.4
+	 *
+	 * @param object $model PLL_Model instance
+	 */
 	public function __construct( &$model ) {
 		parent::__construct( $model );
 		$this->www = false === strpos( $this->home, '://www.' ) ? '://' : '://www.';
 	}
 
-	/*
-	 * adds the language code in url
+	/**
+	 * Adds the language code in url
 	 * links_model interface
 	 *
 	 * @since 1.2
 	 *
-	 * @param string $url url to modify
+	 * @param string $url  url to modify
 	 * @param object $lang language
 	 * @return string modified url
 	 */
 	public function add_language_to_link( $url, $lang ) {
-		if ( ! empty( $lang ) ) {
+		if ( ! empty( $lang ) && false === strpos( $url, '://' . $lang->slug . '.' ) ) {
 			$url = $this->options['default_lang'] == $lang->slug && $this->options['hide_default'] ? $url : str_replace( $this->www, '://' . $lang->slug . '.', $url );
 		}
 		return $url;
 	}
 
-	/*
-	 * returns the url without language code
+	/**
+	 * Returns the url without language code
 	 * links_model interface
 	 *
 	 * @since 1.2
@@ -55,21 +62,24 @@ class PLL_Links_Subdomain extends PLL_Links_Permalinks {
 		return $url;
 	}
 
-	/*
-	 * returns the language based on language code in url
+	/**
+	 * Returns the language based on language code in url
 	 * links_model interface
 	 *
 	 * @since 1.2
+	 * @since 2.0 add $url argument
 	 *
+	 * @param string $url optional, defaults to current url
 	 * @return string language slug
 	 */
-	public function get_language_from_url() {
+	public function get_language_from_url( $url = '' ) {
+		$host = empty( $url ) ? $_SERVER['HTTP_HOST'] : parse_url( $url, PHP_URL_HOST );
 		$pattern = '#('.implode( '|', $this->model->get_languages_list( array( 'fields' => 'slug' ) ) ).')\.#';
-		return preg_match( $pattern, trailingslashit( $_SERVER['HTTP_HOST'] ), $matches ) ? $matches[1] : ''; // $matches[1] is the slug of the requested language
+		return preg_match( $pattern, trailingslashit( $host ), $matches ) ? $matches[1] : ''; // $matches[1] is the slug of the requested language
 	}
 
-	/*
-	 * get hosts managed on the website
+	/**
+	 * Get hosts managed on the website
 	 *
 	 * @since 1.5
 	 *

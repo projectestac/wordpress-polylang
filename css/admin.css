@@ -40,10 +40,6 @@
 }
 
 /* strings translation table */
-#string-translation .search-box {
-	margin: 16px 0 8px 0;
-}
-
 .stringstranslations .column-name,
 .stringstranslations .column-context {
 	width: 10%;
@@ -65,6 +61,10 @@
 }
 
 /* settings */
+.pll-settings {
+	margin-top: 20px;
+}
+
 .pll-settings .plugin-title {
 	width: 25%;
 }
@@ -92,7 +92,7 @@
 	margin-bottom: 0.5em;
 }
 
-.pll-configure .submit {
+.pll-configure p.submit {
 	margin-top: 20px;
 }
 
@@ -128,6 +128,20 @@
 	vertical-align: top;
 }
 
+/* settings Activation keys */
+#pll-licenses-table td {
+	vertical-align: top;
+}
+
+#pll-licenses-table label {
+	font-size: 1em;
+	font-weight: 600;
+}
+
+.pll-configure .pll-deactivate-license {
+	margin: 0 0 0 20px;
+}
+
 /* language columns in edit.php and edit-tags.php */
 th[class*='column-language_'],
 td[class*='column-language_'] {
@@ -151,8 +165,12 @@ td[class*='column-language_'] {
 }
 
 #post-translations .pll-language-column,
-#post-translations .pll-edit-column {
+#post-translations .pll-column-icon {
 	width: 20px;
+}
+
+#post-translations .tr_lang {
+	width: 100%;
 }
 
 #post-translations td {
@@ -167,7 +185,7 @@ td[class*='column-language_'] {
 	width: auto;
 }
 
-.pll-edit-column {
+.pll-column-icon {
 	text-align: center;
 }
 
@@ -278,6 +296,15 @@ td[class*='column-language_'] {
 	.pll-settings-url-col {
 		display: block;
 		width: 100%;
+	}
+
+	/* settings licenses */
+	#wpbody-content .pll-settings #pll-licenses-table td {
+		display: block;
+	}
+
+	.pll-configure .pll-deactivate-license {
+		margin: 10px 0 5px;
 	}
 
 	/* strings translations table */

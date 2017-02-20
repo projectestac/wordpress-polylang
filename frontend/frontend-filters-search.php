@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * filters search forms when using permalinks
  *
  * @since 1.2
@@ -8,7 +8,7 @@
 class PLL_Frontend_Filters_Search {
 	public $links_model, $curlang;
 
-	/*
+	/**
 	 * constructor
 	 *
 	 * @since 1.2
@@ -21,19 +21,19 @@ class PLL_Frontend_Filters_Search {
 
 		// adds the language information in the search form
 		// low priority in case the search form is created using the same filter as described in http://codex.wordpress.org/Function_Reference/get_search_form
-		add_filter( 'get_search_form', array( &$this, 'get_search_form' ), 99 );
+		add_filter( 'get_search_form', array( $this, 'get_search_form' ), 99 );
 
 		// adds the language information in admin bar search form
-		add_action( 'add_admin_bar_menus', array( &$this, 'add_admin_bar_menus' ) );
+		add_action( 'add_admin_bar_menus', array( $this, 'add_admin_bar_menus' ) );
 
 		// adds javascript at the end of the document
 		// was used for WP < 3.6. kept just in case
 		if ( defined( 'PLL_SEARCH_FORM_JS' ) && PLL_SEARCH_FORM_JS ) {
-			add_action( 'wp_footer', array( &$this, 'wp_print_footer_scripts' ) );
+			add_action( 'wp_footer', array( $this, 'wp_print_footer_scripts' ) );
 		}
 	}
 
-	/*
+	/**
 	 * adds the language information in the search form
 	 * does not work if searchform.php ( prior to WP 3.6 ) is used or if the search form is hardcoded in another template file
 	 *
@@ -59,17 +59,17 @@ class PLL_Frontend_Filters_Search {
 		return $form;
 	}
 
-	/*
+	/**
 	 * adds the language information in admin bar search form
 	 *
 	 * @since 1.2
 	 */
 	function add_admin_bar_menus() {
 		remove_action( 'admin_bar_menu', 'wp_admin_bar_search_menu', 4 );
-		add_action( 'admin_bar_menu', array( &$this, 'admin_bar_search_menu' ), 4 );
+		add_action( 'admin_bar_menu', array( $this, 'admin_bar_search_menu' ), 4 );
 	}
 
-	/*
+	/**
 	 * rewrites the admin bar search form to pass our get_search form filter. See #21342
 	 * code base is WP 4.3.1
 	 *
@@ -80,8 +80,8 @@ class PLL_Frontend_Filters_Search {
 	public function admin_bar_search_menu( $wp_admin_bar ) {
 		$form  = '<form action="' . esc_url( home_url( '/' ) ) . '" method="get" id="adminbarsearch">';
 		$form .= '<input class="adminbar-input" name="s" id="adminbar-search" type="text" value="" maxlength="150" />';
-		$form .= '<label for="adminbar-search" class="screen-reader-text">' . __( 'Search' ) . '</label>';
-		$form .= '<input type="submit" class="adminbar-button" value="' . __( 'Search' ) . '"/>';
+		$form .= '<label for="adminbar-search" class="screen-reader-text">' . esc_html__( 'Search' ) . '</label>';
+		$form .= '<input type="submit" class="adminbar-button" value="' . esc_attr__( 'Search' ) . '"/>';
 		$form .= '</form>';
 
 		$wp_admin_bar->add_menu( array(
@@ -92,7 +92,7 @@ class PLL_Frontend_Filters_Search {
 		) );
 	}
 
-	/*
+	/**
 	 * allows modifying the search form if it does not pass get_search_form
 	 *
 	 * @since 0.1

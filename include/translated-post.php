@@ -1,12 +1,19 @@
 <?php
 
-/*
- * setups the posts languages and translations model
+/**
+ * Setups the posts languages and translations model
  *
  * @since 1.8
  */
 class PLL_Translated_Post extends PLL_Translated_Object {
 
+	/**
+	 * Constructor
+	 *
+	 * @since 1.8
+	 *
+	 * @param object $model
+	 */
 	public function __construct( &$model ) {
 		// init properties
 		$this->object_type = null;
@@ -17,29 +24,29 @@ class PLL_Translated_Post extends PLL_Translated_Object {
 		parent::__construct( $model );
 
 		// registers completely the language taxonomy
-		add_action( 'setup_theme', array( &$this, 'register_taxonomy' ), 1 );
+		add_action( 'setup_theme', array( $this, 'register_taxonomy' ), 1 );
 
 		// setups post types to translate
-		add_action( 'registered_post_type', array( &$this, 'registered_post_type' ) );
+		add_action( 'registered_post_type', array( $this, 'registered_post_type' ) );
 
 		// forces updating posts cache
-		add_action( 'pre_get_posts', array( &$this, 'pre_get_posts' ) );
+		add_action( 'pre_get_posts', array( $this, 'pre_get_posts' ) );
 	}
 
-	/*
-	 * store the post language in the database
+	/**
+	 * Store the post language in the database
 	 *
 	 * @since 0.6
 	 *
-	 * @param int $post_id post id
-	 * @param int|string|object language ( term_id or slug or object )
+	 * @param int               $post_id post id
+	 * @param int|string|object $lang    language ( term_id or slug or object )
 	 */
 	public function set_language( $post_id, $lang ) {
 		wp_set_post_terms( (int) $post_id, $lang ? $this->model->get_language( $lang )->slug : '', 'language' );
 	}
 
-	/*
-	 * returns the language of a post
+	/**
+	 * Returns the language of a post
 	 *
 	 * @since 0.1
 	 *
@@ -51,8 +58,8 @@ class PLL_Translated_Post extends PLL_Translated_Object {
 		return ( $lang ) ? $this->model->get_language( $lang ) : false;
 	}
 
-	/*
-	 * deletes a translation
+	/**
+	 * Deletes a translation
 	 *
 	 * @since 0.5
 	 *
@@ -63,20 +70,23 @@ class PLL_Translated_Post extends PLL_Translated_Object {
 		wp_set_object_terms( $id, null, $this->tax_translations );
 	}
 
-	/*
-	 * a join clause to add to sql queries when filtering by language is needed directly in query
+	/**
+	 * A join clause to add to sql queries when filtering by language is needed directly in query
 	 *
 	 * @since 1.2
 	 *
 	 * @return string join clause
 	 */
-	public function join_clause() {
+	public function join_clause( $alias = '' ) {
 		global $wpdb;
-		return " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = ID";
+		if ( empty( $alias ) ) {
+			$alias = $wpdb->posts;
+		}
+		return " INNER JOIN $wpdb->term_relationships AS pll_tr ON pll_tr.object_id = $alias.ID";
 	}
 
-	/*
-	 * register the language taxonomy
+	/**
+	 * Register the language taxonomy
 	 *
 	 * @since 1.2
 	 */
@@ -98,8 +108,8 @@ class PLL_Translated_Post extends PLL_Translated_Object {
 		) );
 	}
 
-	/*
-	 * check if registered post type must be translated
+	/**
+	 * Check if registered post type must be translated
 	 *
 	 * @since 1.2
 	 *
@@ -112,8 +122,8 @@ class PLL_Translated_Post extends PLL_Translated_Object {
 		}
 	}
 
-	/*
-	 * forces calling 'update_object_term_cache' when querying posts or pages
+	/**
+	 * Forces calling 'update_object_term_cache' when querying posts or pages
 	 * this is especially useful for nav menus with a lot of pages
 	 * without doing this, we would have one query per page in the menu to get the page language for the permalink
 	 *

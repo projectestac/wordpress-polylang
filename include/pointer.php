@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * a class to manage WP pointers
  * offers the possibility to have customized buttons
  *
@@ -9,7 +9,7 @@
 class PLL_Pointer {
 	protected $args;
 
-	/*
+	/**
 	 * constructor
 	 * enqueues the pointer script
 	 *
@@ -33,10 +33,10 @@ class PLL_Pointer {
 	 */
 	public function __construct( $args ) {
 		$this->args = $args;
-		add_action( 'admin_enqueue_scripts', array( &$this, 'enqueue_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 	}
 
-	/*
+	/**
 	 * enqueue javascripts and styles if the pointer has not been dismissed
 	 *
 	 * @since 1.7.7
@@ -48,13 +48,13 @@ class PLL_Pointer {
 		}
 
 		// Add pointer javascript
-		add_action( 'admin_print_footer_scripts', array( &$this, 'print_js' ) );
+		add_action( 'admin_print_footer_scripts', array( $this, 'print_js' ) );
 
 		wp_enqueue_style( 'wp-pointer' );
 		wp_enqueue_script( 'wp-pointer' );
 	}
 
-	/*
+	/**
 	 * adds the javascript of our pointer to the page
 	 *
 	 * @since 1.7.7
@@ -80,7 +80,7 @@ class PLL_Pointer {
 						} );
 					} ).appendTo( buttons );",
 					empty( $button['link'] ) ? 'button' : 'button button-primary',
-					$button['label'],
+					esc_html( $button['label'] ),
 					$this->args['pointer'],
 					empty( $button['link'] ) ? "pointer.pointer( 'close' )" : sprintf( "location.href = '%s'", $button['link'] )
 				);
@@ -100,7 +100,7 @@ class PLL_Pointer {
 			} );
 			// ]]>",
 			$this->args['id'],
-			sprintf( '<h3>%s</h3><p>%s</p>', $this->args['title'], $this->args['content'] ),
+			sprintf( '<h3>%s</h3><p>%s</p>', esc_html( $this->args['title'] ), esc_html( $this->args['content'] ) ),
 			empty( $this->args['position'] ) ? '' : sprintf( 'position: {edge: "%s", align: "%s",},', $this->args['position']['edge'], $this->args['position']['align'] ),
 			empty( $this->args['width'] ) ? '' : sprintf( 'pointerWidth: %d,', $this->args['width'] ),
 			empty( $b ) ? '' : $b

@@ -1,15 +1,15 @@
 <?php
 
-/*
+/**
  * adds the language column in posts and terms list tables
  * manages quick edit and bulk edit as well
  *
  * @since 1.2
  */
 class PLL_Admin_Filters_Columns {
-	public $links, $model, $curlang;
+	public $links, $model, $filter_lang;
 
-	/*
+	/**
 	 * constructor: setups filters and actions
 	 *
 	 * @since 1.2
@@ -19,32 +19,32 @@ class PLL_Admin_Filters_Columns {
 	public function __construct( &$polylang ) {
 		$this->links = &$polylang->links;
 		$this->model = &$polylang->model;
-		$this->curlang = &$polylang->curlang;
+		$this->filter_lang = &$polylang->filter_lang;
 
 		// add the language and translations columns in 'All Posts', 'All Pages' and 'Media library' panels
 		foreach ( $this->model->get_translated_post_types() as $type ) {
 			// use the latest filter late as some plugins purely overwrite what's done by others :(
 			// specific case for media
-			add_filter( 'manage_'. ( 'attachment' == $type ? 'upload' : 'edit-'. $type ) .'_columns', array( &$this, 'add_post_column' ), 100 );
-			add_action( 'manage_'. ( 'attachment' == $type ? 'media' : $type .'_posts' ) .'_custom_column', array( &$this, 'post_column' ), 10, 2 );
+			add_filter( 'manage_'. ( 'attachment' == $type ? 'upload' : 'edit-'. $type ) .'_columns', array( $this, 'add_post_column' ), 100 );
+			add_action( 'manage_'. ( 'attachment' == $type ? 'media' : $type .'_posts' ) .'_custom_column', array( $this, 'post_column' ), 10, 2 );
 		}
 
 		// quick edit and bulk edit
-		add_filter( 'quick_edit_custom_box', array( &$this, 'quick_edit_custom_box' ), 10, 2 );
-		add_filter( 'bulk_edit_custom_box', array( &$this, 'quick_edit_custom_box' ), 10, 2 );
+		add_filter( 'quick_edit_custom_box', array( $this, 'quick_edit_custom_box' ), 10, 2 );
+		add_filter( 'bulk_edit_custom_box', array( $this, 'quick_edit_custom_box' ), 10, 2 );
 
 		// adds the language column in the 'Categories' and 'Post Tags' tables
 		foreach ( $this->model->get_translated_taxonomies() as $tax ) {
-			add_filter( 'manage_edit-'.$tax.'_columns', array( &$this, 'add_term_column' ) );
-			add_filter( 'manage_'.$tax.'_custom_column', array( &$this, 'term_column' ), 10, 3 );
+			add_filter( 'manage_edit-'.$tax.'_columns', array( $this, 'add_term_column' ) );
+			add_filter( 'manage_'.$tax.'_custom_column', array( $this, 'term_column' ), 10, 3 );
 		}
 
 		// ajax responses to update list table rows
-		add_action( 'wp_ajax_pll_update_post_rows', array( &$this, 'ajax_update_post_rows' ) );
-		add_action( 'wp_ajax_pll_update_term_rows', array( &$this, 'ajax_update_term_rows' ) );
+		add_action( 'wp_ajax_pll_update_post_rows', array( $this, 'ajax_update_post_rows' ) );
+		add_action( 'wp_ajax_pll_update_term_rows', array( $this, 'ajax_update_term_rows' ) );
 	}
 
-	/*
+	/**
 	 * adds languages and translations columns in posts, pages, media, categories and tags tables
 	 *
 	 * @since 0.8.2
@@ -61,7 +61,7 @@ class PLL_Admin_Filters_Columns {
 
 		foreach ( $this->model->get_languages_list() as $language ) {
 			// don't add the column for the filtered language
-			if ( empty( $this->curlang ) || $language->slug != $this->curlang->slug ) {
+			if ( empty( $this->filter_lang ) || $language->slug != $this->filter_lang->slug ) {
 				$columns[ 'language_'.$language->slug ] = $language->flag ? $language->flag . '<span class="screen-reader-text">' . esc_html( $language->name ) . '</span>' : esc_html( $language->slug );
 			}
 		}
@@ -69,7 +69,7 @@ class PLL_Admin_Filters_Columns {
 		return isset( $end ) ? array_merge( $columns, $end ) : $columns;
 	}
 
-	/*
+	/**
 	 * returns the first language column in the posts, pages and media library tables
 	 *
 	 * @since 0.9
@@ -78,7 +78,7 @@ class PLL_Admin_Filters_Columns {
 	 */
 	protected function get_first_language_column() {
 		foreach ( $this->model->get_languages_list() as $language ) {
-			if ( empty( $this->curlang ) || $language->slug != $this->curlang->slug ) {
+			if ( empty( $this->filter_lang ) || $language->slug != $this->filter_lang->slug ) {
 				$columns[] = 'language_' . $language->slug;
 			}
 		}
@@ -86,7 +86,7 @@ class PLL_Admin_Filters_Columns {
 		return empty( $columns ) ? '' : reset( $columns );
 	}
 
-	/*
+	/**
 	 * adds the language and translations columns ( before the comments column ) in the posts, pages and media library tables
 	 *
 	 * @since 0.1
@@ -98,7 +98,7 @@ class PLL_Admin_Filters_Columns {
 		return $this->add_column( $columns, 'comments' );
 	}
 
-	/*
+	/**
 	 * fills the language and translations columns in the posts, pages and media library tables
 	 * take care that when doing ajax inline edit, the post may not be updated in database yet
 	 *
@@ -131,21 +131,21 @@ class PLL_Admin_Filters_Columns {
 			if ( $link = get_edit_post_link( $id ) ) {
 				if ( $id === $post_id ) {
 					$class = 'pll_icon_tick';
-					/* translators: %s is a native language name */
+					/* translators: accessibility text, %s is a native language name */
 					$s = sprintf( __( 'Edit this item in %s', 'polylang' ), $language->name );
 				} else {
 					$class = esc_attr( 'pll_icon_edit translation_' . $id );
-					/* translators: %s is a native language name */
+					/* translators: accessibility text, %s is a native language name */
 					$s = sprintf( __( 'Edit the translation in %s', 'polylang' ), $language->name );
 				}
 				printf(
 					'<a class="%1$s" title="%2$s" href="%3$s"><span class="screen-reader-text">%4$s</span></a>',
-					$class, esc_attr( get_post( $id )->post_title ), esc_url( $link ), esc_html( $s )
+					esc_attr( $class ), esc_attr( get_post( $id )->post_title ), esc_url( $link ), esc_html( $s )
 				);
 			} elseif ( $id === $post_id ) {
 				printf(
 					'<span class="pll_icon_tick"><span class="screen-reader-text">%s</span></span>',
-					/* translators: %s is a native language name */
+					/* translators: accessibility text, %s is a native language name */
 					esc_html( sprintf( __( 'This item is in %s', 'polylang' ), $language->name ) )
 	 			);
 			}
@@ -156,7 +156,7 @@ class PLL_Admin_Filters_Columns {
 		}
 	}
 
-	/*
+	/**
 	 * quick edit & bulk edit
 	 *
 	 * @since 0.9
@@ -184,14 +184,14 @@ class PLL_Admin_Filters_Columns {
 						</label>
 					</div>
 				</fieldset>',
-				__( 'Language', 'polylang' ),
+				esc_html__( 'Language', 'polylang' ),
 				$dropdown->walk( $elements, array( 'name' => 'inline_lang_choice', 'id' => '' ) )
 			);
 		}
 		return $column;
 	}
 
-	/*
+	/**
 	 * adds the language column ( before the posts column ) in the 'Categories' or 'Post Tags' table
 	 *
 	 * @since 0.1
@@ -203,7 +203,7 @@ class PLL_Admin_Filters_Columns {
 		return $this->add_column( $columns, 'posts' );
 	}
 
-	/*
+	/**
 	 * fills the language column in the 'Categories' or 'Post Tags' table
 	 *
 	 * @since 0.1
@@ -242,11 +242,11 @@ class PLL_Admin_Filters_Columns {
 			if ( $link = get_edit_term_link( $id, $taxonomy, $post_type ) ) {
 				if ( $id === $term_id ) {
 					$class = 'pll_icon_tick';
-					/* translators: %s is a native language name */
+					/* translators: accessibility text, %s is a native language name */
 					$s = sprintf( __( 'Edit this item in %s', 'polylang' ), $language->name );
 				} else {
 					$class = esc_attr( 'pll_icon_edit translation_' . $id );
-					/* translators: %s is a native language name */
+					/* translators: accessibility text, %s is a native language name */
 					$s = sprintf( __( 'Edit the translation in %s', 'polylang' ), $language->name );
 				}
 				$out .= sprintf(
@@ -256,7 +256,7 @@ class PLL_Admin_Filters_Columns {
 			} elseif ( $id === $term_id ) {
 				$out .= printf(
 					'<span class="pll_icon_tick"><span class="screen-reader-text">%s</span></span>',
-					/* translators: %s is a native language name */
+					/* translators: accessibility text, %s is a native language name */
 					esc_html( sprintf( __( 'This item is in %s', 'polylang' ), $language->name ) )
 	 			);
 			}
@@ -270,7 +270,7 @@ class PLL_Admin_Filters_Columns {
 		return $out;
 	}
 
-	/*
+	/**
 	 * update rows of translated posts when the language is modified in quick edit
 	 *
 	 * @since 1.7
@@ -304,7 +304,7 @@ class PLL_Admin_Filters_Columns {
 		$x->send();
 	}
 
-	/*
+	/**
 	 * update rows of translated terms when adding / deleting a translation or when the language is modified in quick edit
 	 *
 	 * @since 1.7

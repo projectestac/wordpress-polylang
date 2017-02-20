@@ -1,10 +1,10 @@
 <?php
 
 if ( ! defined( 'ABSPATH' ) ) {
-	exit; // don't access directly
+	exit; // Don't access directly
 };
 
-/*
+/**
  * The list of predefined languages
  *
  * for each language:
@@ -19,15 +19,19 @@ $languages = array(
 	'ar' => array( 'ar', 'ar', 'العربية', 'rtl', 'arab' ),
 	'ary' => array( 'ar', 'ary', 'العربية المغربية', 'rtl', 'ma' ),
 	'az' => array( 'az', 'az', 'Azərbaycan', 'ltr', 'az' ),
+	'azb' => array( 'az', 'azb', 'گؤنئی آذربایجان', 'rtl', 'az' ),
 	'bel' => array( 'be', 'bel', 'Беларуская мова', 'ltr', 'by' ),
 	'bg_BG' => array( 'bg', 'bg_BG', 'български', 'ltr', 'bg' ),
 	'bn_BD' => array( 'bn', 'bn_BD', 'বাংলা', 'ltr', 'bd' ),
+	'bo' => array( 'bo', 'bo', 'བོད་ཡིག', 'ltr', 'tibet' ),
 	'bs_BA' => array( 'bs', 'bs_BA', 'Bosanski', 'ltr', 'ba' ),
 	'ca' => array( 'ca', 'ca', 'Català', 'ltr', 'catalonia' ),
+	'ceb' => array( 'ceb', 'ceb', 'Cebuano', 'ltr', 'ph' ),
 	'cs_CZ' => array( 'cs', 'cs_CZ', 'Čeština', 'ltr', 'cz' ),
 	'cy' => array( 'cy', 'cy', 'Cymraeg', 'ltr', 'wales' ),
 	'da_DK' => array( 'da', 'da_DK', 'Dansk', 'ltr', 'dk' ),
 	'de_CH' => array( 'de', 'de_CH', 'Deutsch', 'ltr', 'ch' ),
+	'de_CH_informal' => array( 'de', 'de_CH_informal', 'Deutsch', 'ltr', 'ch' ),
 	'de_DE' => array( 'de', 'de_DE', 'Deutsch', 'ltr', 'de' ),
 	'de_DE_formal' => array( 'de', 'de_DE_formal', 'Deutsch', 'ltr', 'de' ),
 	'el' => array( 'el', 'el', 'Ελληνικά', 'ltr', 'gr' ),
@@ -42,6 +46,7 @@ $languages = array(
 	'es_CL' => array( 'es', 'es_CL', 'Español', 'ltr', 'cl' ),
 	'es_CO' => array( 'es', 'es_CO', 'Español', 'ltr', 'co' ),
 	'es_ES' => array( 'es', 'es_ES', 'Español', 'ltr', 'es' ),
+	'es_GT' => array( 'es', 'es_GT', 'Español', 'ltr', 'gt' ),
 	'es_MX' => array( 'es', 'es_MX', 'Español', 'ltr', 'mx' ),
 	'es_PE' => array( 'es', 'es_PE', 'Español', 'ltr', 'pe' ),
 	'es_VE' => array( 'es', 'es_VE', 'Español', 'ltr', 've' ),
@@ -57,6 +62,7 @@ $languages = array(
 	'fy' => array( 'fy', 'fy', 'Frysk', 'ltr', 'nl' ),
 	'gd' => array( 'gd', 'gd', 'Gàidhlig', 'ltr', 'scotland' ),
 	'gl_ES' => array( 'gl', 'gl_ES', 'Galego', 'ltr', 'galicia' ),
+	'gu' => array( 'gu', 'gu', 'ગુજરાતી', 'ltr', 'in' ),
 	'haz' => array( 'haz', 'haz', 'هزاره گی', 'rtl', 'af' ),
 	'he_IL' => array( 'he', 'he_IL', 'עברית', 'rtl', 'il' ),
 	'hi_IN' => array( 'hi', 'hi_IN', 'हिन्दी', 'ltr', 'in' ),
@@ -77,11 +83,13 @@ $languages = array(
 	'lv' => array( 'lv', 'lv', 'Latviešu valoda', 'ltr', 'lv' ),
 	'mk_MK' => array( 'mk', 'mk_MK', 'македонски јазик', 'ltr', 'mk' ),
 	'mn' => array( 'mn', 'mn', 'Монгол хэл', 'ltr', 'mn' ),
+	'mr' => array( 'mr', 'mr', 'मराठी', 'ltr', 'in' ),
 	'ms_MY' => array( 'ms', 'ms_MY', 'Bahasa Melayu', 'ltr', 'my' ),
 	'my_MM' => array( 'my', 'my_MM', 'ဗမာစာ', 'ltr', 'mm' ),
 	'nb_NO' => array( 'nb', 'nb_NO', 'Norsk Bokmål', 'ltr', 'no' ),
 	'ne_NP' => array( 'ne', 'ne_NP', 'नेपाली', 'ltr', 'np' ),
 	'nl_NL' => array( 'nl', 'nl_NL', 'Nederlands', 'ltr', 'nl' ),
+	'nl_NL_formal' => array( 'nl', 'nl_NL_formal', 'Nederlands', 'ltr', 'nl' ),
 	'nn_NO' => array( 'nn', 'nn_NO', 'Norsk Nynorsk', 'ltr', 'no' ),
 	'oci' => array( 'oc', 'oci', 'Occitan', 'ltr', 'occitania' ),
 	'pl_PL' => array( 'pl', 'pl_PL', 'Polski', 'ltr', 'pl' ),
@@ -98,6 +106,7 @@ $languages = array(
 	'sr_RS' => array( 'sr', 'sr_RS', 'Српски језик', 'ltr', 'rs' ),
 	'su_ID' => array( 'su', 'su_ID', 'Basa Sunda', 'ltr', 'id' ),
 	'sv_SE' => array( 'sv', 'sv_SE', 'Svenska', 'ltr', 'se' ),
+	'szl' => array( 'szl', 'szl', 'Ślōnskŏ gŏdka', 'ltr', 'pl' ),
 	'ta_LK' => array( 'ta', 'ta_LK', 'தமிழ்', 'ltr', 'lk' ),
 	'th' => array( 'th', 'th', 'ไทย', 'ltr', 'th' ),
 	'tl' => array( 'tl', 'tl', 'Tagalog', 'ltr', 'ph' ),
@@ -113,4 +122,11 @@ $languages = array(
 	'zh_TW' => array( 'zh', 'zh_TW', '中文 (台灣)', 'ltr', 'tw' ),
 );
 
+/**
+ * Filter the list of predefined languages
+ *
+ * @since 1.7.10
+ *
+ * @param array $languages
+ */
 $languages = apply_filters( 'pll_predefined_languages', $languages );

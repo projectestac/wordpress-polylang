@@ -1,19 +1,19 @@
 <?php
 
-/*
+/**
  * manages links related functions
  *
  * @since 1.8
  */
 class PLL_Admin_Links extends PLL_Links {
 
-	/*
+	/**
 	 * get the link to create a new post translation
 	 *
 	 * @since 1.5
 	 *
-	 * @param int $post_id
-	 * @param object $language
+	 * @param int    $post_id  the source post id
+	 * @param object $language the language of the new translation
 	 * @return string
 	 */
 	public function get_new_post_translation_link( $post_id, $language ) {
@@ -42,15 +42,24 @@ class PLL_Admin_Links extends PLL_Links {
 			$link = add_query_arg( $args, admin_url( 'post-new.php' ) );
 		}
 
+		/**
+		 * Filter the new post translation link
+		 *
+		 * @since 1.8
+		 *
+		 * @param string $link     the new post translation link
+		 * @param object $language the language of the new translation
+		 * @param int    $post_id  the source post id
+		 */
 		return apply_filters( 'pll_get_new_post_translation_link', $link, $language, $post_id );
 	}
 
-	/*
+	/**
 	 * returns html markup for a new post translation link
 	 *
 	 * @since 1.8
 	 *
-	 * @param int $post_id
+	 * @param int    $post_id
 	 * @param object $language
 	 * @return string
 	 */
@@ -59,12 +68,12 @@ class PLL_Admin_Links extends PLL_Links {
 		return $link ? sprintf(
 			'<a href="%1$s" class="pll_icon_add"><span class="screen-reader-text">%2$s</span></a>',
 			esc_url( $link ),
-			/* translators: %s is a native language name */
+			/* translators: accessibility text, %s is a native language name */
 			esc_html( sprintf( __( 'Add a translation in %s', 'polylang' ), $language->name ) )
 		) : '';
 	}
 
-	/*
+	/**
 	 * returns html markup for a translation link
 	 *
 	 * @since 1.4
@@ -78,17 +87,17 @@ class PLL_Admin_Links extends PLL_Links {
 		return $link ? sprintf(
 			'<a href="%1$s" class="pll_icon_edit"><span class="screen-reader-text">%2$s</span></a>',
 			esc_url( $link ),
-			/* translators: %s is a native language name */
+			/* translators: accessibility text, %s is a native language name */
 			esc_html( sprintf( __( 'Edit the translation in %s', 'polylang' ), $language->name ) )
 		) : '';
 	}
 
-	/*
+	/**
 	 * get the link to create a new term translation
 	 *
 	 * @since 1.5
 	 *
-	 * @param int $term_id
+	 * @param int    $term_id
 	 * @param string $taxonomy
 	 * @param string $post_type
 	 * @param object $language
@@ -108,10 +117,22 @@ class PLL_Admin_Links extends PLL_Links {
 		);
 
 		$link = add_query_arg( $args, admin_url( 'edit-tags.php' ) );
+
+		/**
+		 * Filter the new term translation link
+		 *
+		 * @since 1.8
+		 *
+		 * @param string $link      the new term translation link
+		 * @param object $language  the language of the new translation
+		 * @param int    $term_id   the source term id
+		 * @param string $taxonomy
+		 * @param string $post_type
+		 */
 		return apply_filters( 'pll_get_new_term_translation_link', $link, $language, $term_id, $taxonomy, $post_type );
 	}
 
-	/*
+	/**
 	 * returns html markup for a new term translation
 	 *
 	 * @since 1.8
@@ -127,17 +148,17 @@ class PLL_Admin_Links extends PLL_Links {
 		return $link ? sprintf(
 			'<a href="%1$s" class="pll_icon_add"><span class="screen-reader-text">%2$s</span></a>',
 			esc_url( $link ),
-			/* translators: %s is a native language name */
+			/* translators: accessibility text, %s is a native language name */
 			esc_html( sprintf( __( 'Add a translation in %s', 'polylang' ), $language->name ) )
 		) : '';
 	}
 
-	/*
+	/**
 	 * returns html markup for a term translation link
 	 *
 	 * @since 1.4
 	 *
-	 * @param object $term_id translation term id
+	 * @param object $term_id   translation term id
 	 * @param string $taxonomy
 	 * @param string $post_type
 	 * @return string
@@ -148,7 +169,7 @@ class PLL_Admin_Links extends PLL_Links {
 		return $link ? sprintf(
 			'<a href="%1$s" class="pll_icon_edit"><span class="screen-reader-text">%2$s</span></a>',
 			esc_url( $link ),
-			/* translators: %s is a native language name */
+			/* translators: accessibility text, %s is a native language name */
 			esc_html( sprintf( __( 'Edit the translation in %s', 'polylang' ), $language->name ) )
 		) : '';
 	}

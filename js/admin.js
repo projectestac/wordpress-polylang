@@ -56,8 +56,8 @@ jQuery( document ).ready(function( $ ) {
 	// languages form
 	// fills the fields based on the language dropdown list choice
 	$( '#lang_list' ).change(function() {
-		value = $( this ).val().split( '-' );
-		selected = $( "select option:selected" ).text().split( ' - ' );
+		var value = $( this ).val().split( ':' );
+		var selected = $( "select option:selected" ).text().split( ' - ' );
 		$( '#lang_slug' ).val( value[0] );
 		$( '#lang_locale' ).val( value[1] );
 		$( 'input[name="rtl"]' ).val( [value[2]] );
@@ -99,41 +99,50 @@ jQuery( document ).ready(function( $ ) {
 		var parts = tr.attr( 'id' ).split( '-' );
 
 		var data = {
-			action:     'pll_save_options',
-			module:     parts[parts.length - 1],
-			_pll_nonce: $( '#_pll_nonce' ).val()
+			action:            'pll_save_options',
+			pll_ajax_settings: true,
+			module:            parts[parts.length - 1],
+			_pll_nonce:        $( '#_pll_nonce' ).val()
 		}
 
 		data = tr.find( ':input' ).serialize() + '&' + $.param( data );
 
-		$.post( ajaxurl, data , function( response ) {
-			if ( response.success ) {
-				tr.hide().prev().show(); // close only if there is no error
-			}
+		$.post( ajaxurl, data, function( response ) {
+			var res = wpAjax.parseAjaxResponse( response, 'ajax-response' );
+			$.each( res.responses, function() {
+				switch ( this.what ) {
+					case 'license-update':
+						$( '#pll-license-' + this.data ).replaceWith( this.supplemental.html );
+					break;
+					case 'success':
+						tr.hide().prev().show(); // close only if there is no error
+					case 'error':
+						$( '.settings-error' ).remove(); // remove previous messages if any
+						$( 'h1' ).after( this.data );
 
-			$( '.settings-error' ).remove(); // remove previous messages if any
-			$( '.nav-tab-wrapper' ).after( response.data );
+						// Make notices dismissible
+						// copy paste of common.js from WP 4.2.2
+						$( '.notice.is-dismissible' ).each(function() {
+							var $this = $( this ),
+								$button = $( '<button type="button" class="notice-dismiss"><span class="screen-reader-text"></span></button>' ),
+								btnText = commonL10n.dismiss || '';
 
-			// Make notices dismissible
-			// copy paste of common.js from WP 4.2.2
-			$( '.notice.is-dismissible' ).each(function() {
-				var $this = $( this ),
-					$button = $( '<button type="button" class="notice-dismiss"><span class="screen-reader-text"></span></button>' ),
-					btnText = commonL10n.dismiss || '';
+							// Ensure plain text
+							$button.find( '.screen-reader-text' ).text( btnText );
 
-				// Ensure plain text
-				$button.find( '.screen-reader-text' ).text( btnText );
+							$this.append( $button );
 
-				$this.append( $button );
-
-				$button.on( 'click.wp-dismiss-notice', function( event ) {
-					event.preventDefault();
-					$this.fadeTo( 100 , 0, function() {
-						$( this ).slideUp( 100, function() {
-							$( this ).remove();
+							$button.on( 'click.wp-dismiss-notice', function( event ) {
+								event.preventDefault();
+								$this.fadeTo( 100 , 0, function() {
+									$( this ).slideUp( 100, function() {
+										$( this ).remove();
+									});
+								});
+							});
 						});
-					});
-				});
+					break;
+				}
 			});
 		});
 	});
@@ -163,4 +172,19 @@ jQuery( document ).ready(function( $ ) {
 		pll_toggle( $( "#pll-hide-default" ), 3 > value );
 		pll_toggle( $( "#pll-rewrite" ), 2 > value );
 	});
+
+	// settings license
+	// deactivate button
+	$( '.pll-deactivate-license' ).on( 'click', function() {
+		var data = {
+			action:            'pll_deactivate_license',
+			pll_ajax_settings: true,
+			id:                $( this ).attr( 'id' ),
+			_pll_nonce:        $( '#_pll_nonce' ).val()
+		}
+		$.post( ajaxurl, data , function( response ){
+			$( '#pll-license-' + response.id ).replaceWith( response.html );
+		});
+	});
+
 });

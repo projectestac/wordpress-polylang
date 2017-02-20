@@ -1,6 +1,6 @@
 <?php
 
-/*
+/**
  * Choose the language when the language code is added to all urls
  * The language is set in plugins_loaded with priority 1 as done by WPML
  * Some actions have to be delayed to wait for $wp_rewrite availibility
@@ -10,7 +10,7 @@
 class PLL_Choose_Lang_Url extends PLL_Choose_lang {
 	protected $index = 'index.php'; // need this before $wp_rewrite is created, also harcoded in wp-includes/rewrite.php
 
-	/*
+	/**
 	 * sets the language
 	 *
 	 * @since 1.8
@@ -22,10 +22,10 @@ class PLL_Choose_Lang_Url extends PLL_Choose_lang {
 			$this->set_language_from_url();
 		}
 
-		add_action( 'request', array( &$this, 'request' ) );
+		add_action( 'request', array( $this, 'request' ) );
 	}
 
-	/*
+	/**
 	 * finds the language according to information found in the url
 	 *
 	 * @since 1.2
@@ -40,7 +40,7 @@ class PLL_Choose_Lang_Url extends PLL_Choose_lang {
 		// home is resquested
 		if ( $requested_host == $host && $requested_uri == $home_path && empty( $_SERVER['QUERY_STRING'] ) ) {
 			$this->home_language();
-			add_action( 'setup_theme', array( &$this, 'home_requested' ) );
+			add_action( 'setup_theme', array( $this, 'home_requested' ) );
 		}
 
 		// take care to post & page preview http://wordpress.org/support/topic/static-frontpage-url-parameter-url-language-information
@@ -67,7 +67,7 @@ class PLL_Choose_Lang_Url extends PLL_Choose_lang {
 	}
 
 
-	/*
+	/**
 	 * adds the current language in query vars
 	 * useful for subdomains and multiple domains
 	 *

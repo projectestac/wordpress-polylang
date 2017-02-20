@@ -1,12 +1,13 @@
 <?php
 
-/*
+/**
  * Settings class for custom post types and taxonomies language and translation management
  *
  * @since 1.8
  */
 class PLL_Settings_CPT extends PLL_Settings_Module {
-	/*
+
+	/**
 	 * constructor
 	 *
 	 * @since 1.8
@@ -23,14 +24,16 @@ class PLL_Settings_CPT extends PLL_Settings_Module {
 		// FIXME should be OK when the modules will be loaded from the settings page
 		$post_types = get_post_types( array( 'public' => true, '_builtin' => false ) );
 		$post_types = array_diff( $post_types, get_post_types( array( '_pll' => true ) ) );
+		/** This filter is documented in include/model.php */
 		$this->post_types = array_unique( apply_filters( 'pll_get_post_types', $post_types, true ) );
 
 		$taxonomies = get_taxonomies( array( 'public' => true, '_builtin' => false ) );
 		$taxonomies = array_diff( $taxonomies, get_taxonomies( array( '_pll' => true ) ) );
+		/** This filter is documented in include/model.php */
 		$this->taxonomies = array_unique( apply_filters( 'pll_get_taxonomies', $taxonomies , true ) );
 	}
 
-	/*
+	/**
 	 * tells if the module is active
 	 *
 	 * @since 1.8
@@ -41,46 +44,50 @@ class PLL_Settings_CPT extends PLL_Settings_Module {
 		return ! empty( $this->post_types ) || ! empty( $this->taxonomies );
 	}
 
-	/*
+	/**
 	 * displays the settings form
 	 *
 	 * @since 1.8
 	 */
 	protected function form() {
 		if ( ! empty( $this->post_types ) ) {?>
-			<h4><?php _e( 'Custom post types', 'polylang' ) ?></h4>
+			<h4><?php esc_html_e( 'Custom post types', 'polylang' ) ?></h4>
 			<ul class="pll-inline-block-list"><?php
 				foreach ( $this->post_types as $post_type ) {
 					$pt = get_post_type_object( $post_type );
-					printf(
-						'<li><label><input name="post_types[%s]" type="checkbox" value="1" %s /> %s</label></li>',
-						esc_attr( $post_type ),
-						in_array( $post_type, $this->options['post_types'] ) ? 'checked="checked"' :'',
-						esc_html( $pt->labels->name )
-					);
+					if ( ! empty( $pt ) ) {
+						printf(
+							'<li><label><input name="post_types[%s]" type="checkbox" value="1" %s /> %s</label></li>',
+							esc_attr( $post_type ),
+							in_array( $post_type, $this->options['post_types'] ) ? 'checked="checked"' :'',
+							esc_html( $pt->labels->name )
+						);
+					}
 				}?>
 			</ul>
-			<p class="description"><?php _e( 'Activate languages and translations for custom post types.', 'polylang' );?></p><?php
+			<p class="description"><?php esc_html_e( 'Activate languages and translations for custom post types.', 'polylang' );?></p><?php
 		}
 
 		if ( ! empty( $this->taxonomies ) ) {?>
-			<h4><?php _e( 'Custom taxonomies', 'polylang' ) ?></h4>
+			<h4><?php esc_html_e( 'Custom taxonomies', 'polylang' ) ?></h4>
 			<ul class="pll-inline-block-list"><?php
 				foreach ( $this->taxonomies as $taxonomy ) {
 					$tax = get_taxonomy( $taxonomy );
-					printf(
-						'<li><label><input name="taxonomies[%s]" type="checkbox" value="1" %s /> %s</label></li>',
-						esc_attr( $taxonomy ),
-						in_array( $taxonomy, $this->options['taxonomies'] ) ? 'checked="checked"' :'',
-						esc_html( $tax->labels->name )
-					);
+					if ( ! empty( $tax ) ) {
+						printf(
+							'<li><label><input name="taxonomies[%s]" type="checkbox" value="1" %s /> %s</label></li>',
+							esc_attr( $taxonomy ),
+							in_array( $taxonomy, $this->options['taxonomies'] ) ? 'checked="checked"' :'',
+							esc_html( $tax->labels->name )
+						);
+					}
 				}?>
 			</ul>
-			<p class="description"><?php _e( 'Activate languages and translations for custom taxonomies.', 'polylang' );?></p><?php
+			<p class="description"><?php esc_html_e( 'Activate languages and translations for custom taxonomies.', 'polylang' );?></p><?php
 		}
 	}
 
-	/*
+	/**
 	 * sanitizes the settings before saving
 	 *
 	 * @since 1.8
