@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Links model for use when the language code is added in url as a directory
@@ -8,14 +11,19 @@
  * @since 1.2
  */
 class PLL_Links_Directory extends PLL_Links_Permalinks {
+	/**
+	 * Relative path to the home url.
+	 *
+	 * @var string
+	 */
 	protected $home_relative;
 
 	/**
-	 * Constructor
+	 * Constructor.
 	 *
 	 * @since 1.2
 	 *
-	 * @param object $model PLL_Model instance
+	 * @param PLL_Model $model PLL_Model instance.
 	 */
 	public function __construct( &$model ) {
 		parent::__construct( $model );
@@ -33,6 +41,8 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 	 * Called only at first object creation to avoid duplicating filters when switching blog
 	 *
 	 * @since 1.6
+	 *
+	 * @return void
 	 */
 	public function init() {
 		if ( did_action( 'setup_theme' ) ) {
@@ -46,23 +56,23 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 	}
 
 	/**
-	 * Adds the language code in url
-	 * links_model interface
+	 * Adds the language code in a url.
+	 * links_model interface.
 	 *
 	 * @since 1.2
 	 *
-	 * @param string $url  url to modify
-	 * @param object $lang language
-	 * @return string modified url
+	 * @param string       $url  The url to modify.
+	 * @param PLL_Language $lang The language object.
+	 * @return string Modified url.
 	 */
 	public function add_language_to_link( $url, $lang ) {
 		if ( ! empty( $lang ) ) {
 			$base = $this->options['rewrite'] ? '' : 'language/';
 			$slug = $this->options['default_lang'] == $lang->slug && $this->options['hide_default'] ? '' : $base . $lang->slug . '/';
-			$root = ( false === strpos( $url, '://' ) ) ? $this->home_relative . $this->root : $this->home . '/' . $this->root;
+			$root = ( false === strpos( $url, '://' ) ) ? $this->home_relative . $this->root : preg_replace( '#^https?://#', '://', $this->home . '/' . $this->root );
 
 			if ( false === strpos( $url, $new = $root . $slug ) ) {
-				$pattern = str_replace( '/', '\/', $root );
+				$pattern = preg_quote( $root, '#' );
 				$pattern = '#' . $pattern . '#';
 				return preg_replace( $pattern, $new, $url, 1 ); // Only once
 			}
@@ -79,7 +89,9 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 	 * @param string $url url to modify
 	 * @return string modified url
 	 */
-	function remove_language_from_link( $url ) {
+	public function remove_language_from_link( $url ) {
+		$languages = array();
+
 		foreach ( $this->model->get_languages_list() as $language ) {
 			if ( ! $this->options['hide_default'] || $this->options['default_lang'] != $language->slug ) {
 				$languages[] = $language->slug;
@@ -87,10 +99,10 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 		}
 
 		if ( ! empty( $languages ) ) {
-			$root = ( false === strpos( $url, '://' ) ) ? $this->home_relative . $this->root : $this->home . '/' . $this->root;
+			$root = ( false === strpos( $url, '://' ) ) ? $this->home_relative . $this->root : preg_replace( '#^https?://#', '://', $this->home . '/' . $this->root );
 
-			$pattern = str_replace( '/', '\/', $root );
-			$pattern = '#' . $pattern . ( $this->options['rewrite'] ? '' : 'language\/' ) . '(' . implode( '|', $languages ) . ')(\/|$)#';
+			$pattern = preg_quote( $root, '#' );
+			$pattern = '#' . $pattern . ( $this->options['rewrite'] ? '' : 'language/' ) . '(' . implode( '|', $languages ) . ')(/|$)#';
 			$url = preg_replace( $pattern, $root, $url );
 		}
 		return $url;
@@ -108,26 +120,25 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 	 */
 	public function get_language_from_url( $url = '' ) {
 		if ( empty( $url ) ) {
-			$path = $_SERVER['REQUEST_URI'];
-		} else {
-			$path = parse_url( $url, PHP_URL_PATH );
+			$url = pll_get_requested_url();
 		}
 
+		$path = wp_parse_url( $url, PHP_URL_PATH );
 		$root = ( false === strpos( $url, '://' ) ) ? $this->home_relative . $this->root : $this->home . '/' . $this->root;
 
-		$pattern = parse_url( $root . ( $this->options['rewrite'] ? '' : 'language/' ), PHP_URL_PATH );
-		$pattern = str_replace( '/', '\/', $pattern );
-		$pattern = '#' . $pattern . '(' . implode( '|', $this->model->get_languages_list( array( 'fields' => 'slug' ) ) ) . ')(\/|$)#';
+		$pattern = wp_parse_url( $root . ( $this->options['rewrite'] ? '' : 'language/' ), PHP_URL_PATH );
+		$pattern = preg_quote( $pattern, '#' );
+		$pattern = '#^' . $pattern . '(' . implode( '|', $this->model->get_languages_list( array( 'fields' => 'slug' ) ) ) . ')(/|$)#';
 		return preg_match( $pattern, trailingslashit( $path ), $matches ) ? $matches[1] : ''; // $matches[1] is the slug of the requested language
 	}
 
 	/**
-	 * Returns the home url
-	 * links_model interface
+	 * Returns the home url in a given language.
+	 * links_model interface.
 	 *
 	 * @since 1.3.1
 	 *
-	 * @param object $lang PLL_Language object
+	 * @param PLL_Language $lang PLL_Language object.
 	 * @return string
 	 */
 	public function home_url( $lang ) {
@@ -140,8 +151,10 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 	 * Optionally removes 'language' in permalinks so that we get http://www.myblog/en/ instead of http://www.myblog/language/en/
 	 *
 	 * @since 1.2
+	 *
+	 * @return void
 	 */
-	function add_permastruct() {
+	public function add_permastruct() {
 		// Language information always in front of the uri ( 'with_front' => false )
 		// The 3rd parameter structure has been modified in WP 3.4
 		// Leads to error 404 for pages when there is no language created yet
@@ -151,12 +164,12 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 	}
 
 	/**
-	 * Prepares rewrite rules filters
+	 * Prepares the rewrite rules filters.
 	 *
 	 * @since 0.8.1
 	 *
-	 * @param array $pre not used
-	 * @return unmodified $pre
+	 * @param mixed $pre Not used as the filter is used as an action.
+	 * @return mixed
 	 */
 	public function prepare_rewrite_rules( $pre ) {
 		// Don't modify the rules if there is no languages created yet
@@ -176,13 +189,13 @@ class PLL_Links_Directory extends PLL_Links_Permalinks {
 
 	/**
 	 * The rewrite rules !
-	 * always make sure the default language is at the end in case the language information is hidden for default language
-	 * thanks to brbrbr http://wordpress.org/support/topic/plugin-polylang-rewrite-rules-not-correct
+	 * Always make sure that the default language is at the end in case the language information is hidden for default language.
+	 * Thanks to brbrbr http://wordpress.org/support/topic/plugin-polylang-rewrite-rules-not-correct.
 	 *
 	 * @since 0.8.1
 	 *
-	 * @param array $rules rewrite rules
-	 * @return array modified rewrite rules
+	 * @param string[] $rules Rewrite rules.
+	 * @return string[] Modified rewrite rules.
 	 */
 	public function rewrite_rules( $rules ) {
 		$filter = str_replace( '_rewrite_rules', '', current_filter() );

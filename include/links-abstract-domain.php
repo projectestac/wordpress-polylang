@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Links model for use when using one domain or subdomain per language
@@ -8,17 +11,18 @@
 abstract class PLL_Links_Abstract_Domain extends PLL_Links_Permalinks {
 
 	/**
-	 * Constructor
+	 * Constructor.
 	 *
 	 * @since 2.0
 	 *
-	 * @param object $model PLL_Model instance
+	 * @param PLL_Model $model Instance of PLL_Model.
 	 */
 	public function __construct( &$model ) {
 		parent::__construct( $model );
 
-		// Avoid cross domain requests ( mainly for custom fonts )
+		// Avoid cross domain requests ( mainly for custom fonts ).
 		add_filter( 'content_url', array( $this, 'site_url' ) );
+		add_filter( 'theme_root_uri', array( $this, 'site_url' ) ); // The above filter is not sufficient with WPMU Domain Mapping.
 		add_filter( 'plugins_url', array( $this, 'site_url' ) );
 		add_filter( 'rest_url', array( $this, 'site_url' ) );
 		add_filter( 'upload_dir', array( $this, 'upload_dir' ) );
@@ -35,20 +39,24 @@ abstract class PLL_Links_Abstract_Domain extends PLL_Links_Permalinks {
 	 * @return string language slug
 	 */
 	public function get_language_from_url( $url = '' ) {
-		$host = empty( $url ) ? $_SERVER['HTTP_HOST'] : parse_url( $url, PHP_URL_HOST );
+		if ( empty( $url ) ) {
+			$url = pll_get_requested_url();
+		}
+
+		$host = wp_parse_url( $url, PHP_URL_HOST );
 		return ( $lang = array_search( $host, $this->get_hosts() ) ) ? $lang : '';
 	}
 
 	/**
-	 * Sets the home urls
+	 * Sets the home urls.
 	 *
 	 * @since 2.2
 	 *
-	 * @param object $language
+	 * @param PLL_Language $language Language object.
 	 */
 	protected function set_home_url( $language ) {
 		$home_url = $this->home_url( $language );
-		$language->set_home_url( $home_url, $home_url ); // Search url and home url are the same
+		$language->set_home_url( $home_url, $home_url ); // Search url and home url are the same.
 	}
 
 	/**

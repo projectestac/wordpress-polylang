@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Manages links filters needed on both frontend and admin
@@ -6,7 +9,36 @@
  * @since 1.8
  */
 class PLL_Filters_Links {
-	public $links, $links_model, $model, $options, $curlang;
+	/**
+	 * Stores the plugin options.
+	 *
+	 * @var array
+	 */
+	public $options;
+
+	/**
+	 * @var PLL_Model
+	 */
+	public $model;
+
+	/**
+	 * Instance of a child class of PLL_Links_Model.
+	 *
+	 * @var PLL_Links_Model
+	 */
+	public $links_model;
+
+	/**
+	 * @var PLL_Links
+	 */
+	public $links;
+
+	/**
+	 * Current language.
+	 *
+	 * @var PLL_Language
+	 */
+	public $curlang;
 
 	/**
 	 * Constructor
@@ -22,7 +54,7 @@ class PLL_Filters_Links {
 		$this->options = &$polylang->options;
 		$this->curlang = &$polylang->curlang;
 
-		// Low priority on links filters to come after any other modifications
+		// Low priority on links filters to come after any other modifications.
 		if ( $this->options['force_lang'] ) {
 			add_filter( 'post_link', array( $this, 'post_type_link' ), 20, 2 );
 			add_filter( '_get_page_link', array( $this, '_get_page_link' ), 20, 2 );
@@ -35,11 +67,12 @@ class PLL_Filters_Links {
 			add_filter( 'attachment_link', array( $this, 'attachment_link' ), 20, 2 );
 		}
 
-		if ( 3 === $this->options['force_lang'] ) {
+		// Keeps the preview post link on default domain when using multiple domains and SSO is not available.
+		if ( 3 === $this->options['force_lang'] && ! class_exists( 'PLL_Xdata_Domain' ) ) {
 			add_filter( 'preview_post_link', array( $this, 'preview_post_link' ), 20 );
 		}
 
-		// Rewrites post types archives links to filter them by language
+		// Rewrites post types archives links to filter them by language.
 		add_filter( 'post_type_archive_link', array( $this, 'post_type_archive_link' ), 20, 2 );
 	}
 
@@ -71,13 +104,13 @@ class PLL_Filters_Links {
 	}
 
 	/**
-	 * Modifies custom posts links
+	 * Modifies custom posts links.
 	 *
 	 * @since 1.6
 	 *
-	 * @param string $link post link
-	 * @param object $post post object
-	 * @return string modified post link
+	 * @param string  $link Post link.
+	 * @param WP_Post $post Post object.
+	 * @return string Modified post link.
 	 */
 	public function post_type_link( $link, $post ) {
 		// /!\ WP does not use pretty permalinks for preview
@@ -86,13 +119,13 @@ class PLL_Filters_Links {
 			$link = $this->options['force_lang'] ? $this->links_model->switch_language_in_link( $link, $lang ) : $link;
 
 			/**
-			 * Filter a post or custom post type link
+			 * Filters a post or custom post type link.
 			 *
 			 * @since 1.6
 			 *
-			 * @param string $link the post link
-			 * @param object $lang the current language
-			 * @param object $post the post object
+			 * @param string       $link The post link.
+			 * @param PLL_Language $lang The current language.
+			 * @param WP_Post      $post The post object.
 			 */
 			$link = apply_filters( 'pll_post_type_link', $link, $lang, $post );
 		}
@@ -101,14 +134,14 @@ class PLL_Filters_Links {
 	}
 
 	/**
-	 * Modifies term link
+	 * Modifies term links.
 	 *
 	 * @since 0.7
 	 *
-	 * @param string $link term link
-	 * @param object $term term object
-	 * @param string $tax  taxonomy name
-	 * @return string modified term link
+	 * @param string  $link Term link.
+	 * @param WP_Term $term Term object.
+	 * @param string  $tax  Taxonomy name;
+	 * @return string Modified term link.
 	 */
 	public function term_link( $link, $term, $tax ) {
 		if ( $this->model->is_translated_taxonomy( $tax ) ) {
@@ -120,23 +153,24 @@ class PLL_Filters_Links {
 			 *
 			 * @since 1.6
 			 *
-			 * @param string $link the term link
-			 * @param object $lang the current language
-			 * @param object $term the term object
+			 * @param string       $link The term link.
+			 * @param PLL_Language $lang The current language.
+			 * @param WP_Term      $term The term object.
 			 */
 			return apply_filters( 'pll_term_link', $link, $lang, $term );
 		}
 
-		// in case someone calls get_term_link for the 'language' taxonomy
+		// In case someone calls get_term_link for the 'language' taxonomy.
 		if ( 'language' === $tax ) {
-			return $this->links_model->home_url( $term );
+			$lang = $this->model->get_language( $term->term_id );
+			return $this->links_model->home_url( $lang );
 		}
 
 		return $link;
 	}
 
 	/**
-	 * FIXME: keeps the preview post link on default domain when using multiple domains
+	 * Keeps the preview post link on default domain when using multiple domains
 	 *
 	 * @since 1.6.1
 	 *

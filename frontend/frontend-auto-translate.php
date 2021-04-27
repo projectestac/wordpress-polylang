@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Auto translates the posts and terms ids
@@ -7,7 +10,17 @@
  * @since 1.1
  */
 class PLL_Frontend_Auto_Translate {
-	public $model, $curlang;
+	/**
+	 * @var PLL_Model
+	 */
+	public $model;
+
+	/**
+	 * Current language.
+	 *
+	 * @var PLL_Language
+	 */
+	public $curlang;
 
 	/**
 	 * Constructor
@@ -53,7 +66,8 @@ class PLL_Frontend_Auto_Translate {
 	 *
 	 * @since 1.1
 	 *
-	 * @param object $query WP_Query object
+	 * @param WP_Query $query WP_Query object
+	 * @return void
 	 */
 	public function pre_get_posts( $query ) {
 		global $wpdb;
@@ -130,7 +144,7 @@ class PLL_Frontend_Auto_Translate {
 		foreach ( array_intersect( $this->model->get_translated_taxonomies(), get_taxonomies( array( '_builtin' => false ) ) ) as $taxonomy ) {
 			$tax = get_taxonomy( $taxonomy );
 			$arr = array();
-			if ( ! empty( $qv[ $tax->query_var ] ) ) {
+			if ( ! empty( $tax ) && ! empty( $qv[ $tax->query_var ] ) ) {
 				$sep = strpos( $qv[ $tax->query_var ], ',' ) !== false ? ',' : '+'; // Two possible separators
 				foreach ( explode( $sep, $qv[ $tax->query_var ] ) as $slug ) {
 					$arr[] = $this->get_translated_term_by( 'slug', $slug, $taxonomy );
@@ -164,13 +178,15 @@ class PLL_Frontend_Auto_Translate {
 
 			if ( ! empty( $post_types ) ) {
 				// No function to get post by name except get_posts itself
-				$id = $wpdb->get_var( sprintf( "
-					SELECT ID from {$wpdb->posts}
-					WHERE {$wpdb->posts}.post_type IN ( '%s' )
-					AND post_name='%s'",
-					implode( "', '", esc_sql( $post_types ) ),
-					esc_sql( $qv['name'] )
-				) );
+				$id = $wpdb->get_var(
+					sprintf(
+						"SELECT ID from {$wpdb->posts}
+						WHERE {$wpdb->posts}.post_type IN ( '%s' )
+						AND post_name='%s'",
+						implode( "', '", esc_sql( $post_types ) ),
+						esc_sql( $qv['name'] )
+					)
+				);
 				$qv['name'] = ( $id && ( $tr_id = $this->get_post( $id ) ) && $tr = get_post( $tr_id ) ) ? $tr->post_name : $qv['name'];
 			}
 		}
@@ -183,12 +199,12 @@ class PLL_Frontend_Auto_Translate {
 
 		// Array of post ids
 		// post_parent__in & post_parent__not_in since WP 3.6
-		foreach ( array( 'post__in', 'post__not_in', 'post_parent__in', 'post_parent__not_in' ) as $key ) {
+		foreach ( array( 'post__in', 'post__not_in', 'post_parent__in', 'post_parent__not_in' ) as $key ) { // phpcs:ignore WordPressVIPMinimum.Performance.WPQueryParams.PostNotIn
 			$arr = array();
 			if ( ! empty( $qv[ $key ] ) ) {
 				// post__in used by the 2 functions below
 				// Useless to filter them as output is already in the right language and would result in performance loss
-				foreach ( debug_backtrace() as $trace ) {
+				foreach ( debug_backtrace( DEBUG_BACKTRACE_IGNORE_ARGS ) as $trace ) { // phpcs:ignore WordPress.PHP.DevelopmentFunctions
 					if ( in_array( $trace['function'], array( 'wp_nav_menu', 'gallery_shortcode' ) ) ) {
 						return;
 					}
@@ -214,6 +230,8 @@ class PLL_Frontend_Auto_Translate {
 	 */
 	public function get_terms_args( $args, $taxonomies ) {
 		if ( ! isset( $args['lang'] ) && ! empty( $args['include'] ) && ( empty( $taxonomies ) || $this->model->is_translated_taxonomy( $taxonomies ) ) ) {
+			$arr = array();
+
 			foreach ( wp_parse_id_list( $args['include'] ) as $id ) {
 				$arr[] = ( $tr = $this->get_term( $id ) ) ? $tr : $id;
 			}

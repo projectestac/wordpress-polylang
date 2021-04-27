@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Manages custom menus translations
@@ -7,7 +10,31 @@
  * @since 1.7.7
  */
 class PLL_Nav_Menu {
-	public $model, $options;
+	/**
+	 * Stores the plugin options.
+	 *
+	 * @var array
+	 */
+	public $options;
+
+	/**
+	 * @var PLL_Model
+	 */
+	public $model;
+
+	/**
+	 * Theme name.
+	 *
+	 * @var string
+	 */
+	protected $theme;
+
+	/**
+	 * Array of menu ids in a given language used when auto add pages to menus.
+	 *
+	 * @var int[]
+	 */
+	protected $auto_add_menus = array();
 
 	/**
 	 * Constructor: setups filters and actions
@@ -20,8 +47,31 @@ class PLL_Nav_Menu {
 		$this->model = &$polylang->model;
 		$this->options = &$polylang->options;
 
+		$this->theme = get_option( 'stylesheet' );
+
+		add_filter( 'wp_setup_nav_menu_item', array( $this, 'wp_setup_nav_menu_item' ) );
+
 		// Integration with WP customizer
 		add_action( 'customize_register', array( $this, 'create_nav_menu_locations' ), 5 );
+
+		// Filter _wp_auto_add_pages_to_menu by language
+		add_action( 'transition_post_status', array( $this, 'auto_add_pages_to_menu' ), 5, 3 ); // before _wp_auto_add_pages_to_menu
+	}
+
+	/**
+	 * Assigns the title and label to the language switcher menu items
+	 *
+	 * @since 2.6
+	 *
+	 * @param stdClass $item Menu item.
+	 * @return stdClass
+	 */
+	public function wp_setup_nav_menu_item( $item ) {
+		if ( '#pll_switcher' === $item->url ) {
+			$item->post_title = __( 'Languages', 'polylang' );
+			$item->type_label = __( 'Language switcher', 'polylang' );
+		}
+		return $item;
 	}
 
 	/**
@@ -29,10 +79,14 @@ class PLL_Nav_Menu {
 	 * to do only one time
 	 *
 	 * @since 1.2
+	 *
+	 * @return void
 	 */
 	public function create_nav_menu_locations() {
 		static $once;
 		global $_wp_registered_nav_menus;
+
+		$arr = array();
 
 		if ( isset( $_wp_registered_nav_menus ) && ! $once ) {
 			foreach ( $_wp_registered_nav_menus as $loc => $name ) {
@@ -51,8 +105,8 @@ class PLL_Nav_Menu {
 	 *
 	 * @since 1.8
 	 *
-	 * @param string $loc nav menu location
-	 * @param object $lang
+	 * @param string       $loc  Nav menu location.
+	 * @param PLL_Language $lang Language object.
 	 * @return string
 	 */
 	public function combine_location( $loc, $lang ) {
@@ -60,14 +114,15 @@ class PLL_Nav_Menu {
 	}
 
 	/**
-	 * Get nav menu locations and language from a temporary location
+	 * Get nav menu locations and language from a temporary location.
 	 *
 	 * @since 1.8
 	 *
-	 * @param string $loc temporary location
-	 * @return array
-	 *   'location' => nav menu location
-	 *   'lang'     => language slug
+	 * @param string $loc Temporary location.
+	 * @return string[] {
+	 *   @type string $location Nav menu location.
+	 *   @type string $lang     Language code.
+	 * }
 	 */
 	public function explode_location( $loc ) {
 		$infos = explode( '___', $loc );
@@ -75,5 +130,48 @@ class PLL_Nav_Menu {
 			$infos[] = $this->options['default_lang'];
 		}
 		return array_combine( array( 'location', 'lang' ), $infos );
+	}
+
+	/**
+	 * Filters the option nav_menu_options for auto added pages to menu
+	 *
+	 * @since 0.9.4
+	 *
+	 * @param array $options
+	 * @return array Modified options
+	 */
+	public function nav_menu_options( $options ) {
+		$options['auto_add'] = array_intersect( $options['auto_add'], $this->auto_add_menus );
+		return $options;
+	}
+
+	/**
+	 * Filters _wp_auto_add_pages_to_menu by language.
+	 *
+	 * @since 0.9.4
+	 *
+	 * @param string  $new_status Transition to this post status.
+	 * @param string  $old_status Previous post status.
+	 * @param WP_Post $post       Post object.
+	 * @return void
+	 */
+	public function auto_add_pages_to_menu( $new_status, $old_status, $post ) {
+		if ( 'publish' != $new_status || 'publish' == $old_status || 'page' != $post->post_type || ! empty( $post->post_parent ) ) {
+			return;
+		}
+
+		if ( ! empty( $this->options['nav_menus'][ $this->theme ] ) ) {
+			$lang = $this->model->post->get_language( $post->ID );
+			$lang = empty( $lang ) ? $this->options['default_lang'] : $lang->slug; // If the page has no language yet, the default language will be assigned
+
+			// Get all the menus in the page language
+			foreach ( $this->options['nav_menus'][ $this->theme ] as $loc ) {
+				if ( ! empty( $loc[ $lang ] ) ) {
+					$this->auto_add_menus[] = $loc[ $lang ];
+				}
+			}
+
+			add_filter( 'option_nav_menu_options', array( $this, 'nav_menu_options' ) );
+		}
 	}
 }

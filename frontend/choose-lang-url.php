@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Choose the language when the language code is added to all urls
@@ -7,13 +10,22 @@
  *
  * @since 1.2
  */
-class PLL_Choose_Lang_Url extends PLL_Choose_lang {
-	protected $index = 'index.php'; // Need this before $wp_rewrite is created, also hardcoded in wp-includes/rewrite.php
+class PLL_Choose_Lang_Url extends PLL_Choose_Lang {
+	/**
+	 * The name of the index file which is the entry point to all requests.
+	 * We need this before the global $wp_rewrite is created.
+	 * Also hardcoded in WP_Rewrite.
+	 *
+	 * @var string
+	 */
+	protected $index = 'index.php';
 
 	/**
 	 * Sets the language
 	 *
 	 * @since 1.8
+	 *
+	 * @return void
 	 */
 	public function init() {
 		parent::init();
@@ -29,27 +41,31 @@ class PLL_Choose_Lang_Url extends PLL_Choose_lang {
 	 * Finds the language according to information found in the url
 	 *
 	 * @since 1.2
+	 *
+	 * @return void
 	 */
 	public function set_language_from_url() {
-		$host = str_replace( 'www.', '', parse_url( $this->links_model->home, PHP_URL_HOST ) ); // Remove www. for the comparison
-		$home_path = parse_url( $this->links_model->home, PHP_URL_PATH );
+		$host      = str_replace( 'www.', '', wp_parse_url( $this->links_model->home, PHP_URL_HOST ) ); // Remove www. for the comparison
+		$home_path = (string) wp_parse_url( $this->links_model->home, PHP_URL_PATH );
 
-		$requested_host = parse_url( 'http://' . str_replace( 'www.', '', $_SERVER['HTTP_HOST'] ), PHP_URL_HOST ); // Remove the port and www. for the comparison
-		$requested_uri = rtrim( str_replace( $this->index, '', $_SERVER['REQUEST_URI'] ), '/' ); // Some PHP setups turn requests for / into /index.php in REQUEST_URI
+		$requested_url   = pll_get_requested_url();
+		$requested_host  = str_replace( 'www.', '', wp_parse_url( $requested_url, PHP_URL_HOST ) ); // Remove www. for the comparison
+		$requested_path  = rtrim( str_replace( $this->index, '', wp_parse_url( $requested_url, PHP_URL_PATH ) ), '/' ); // Some PHP setups turn requests for / into /index.php in REQUEST_URI
+		$requested_query = wp_parse_url( $requested_url, PHP_URL_QUERY );
 
 		// Home is requested
-		if ( $requested_host == $host && $requested_uri == $home_path && empty( $_SERVER['QUERY_STRING'] ) ) {
+		if ( $requested_host === $host && $requested_path === $home_path && empty( $requested_query ) ) {
 			$this->home_language();
 			add_action( 'setup_theme', array( $this, 'home_requested' ) );
 		}
 
 		// Take care to post & page preview http://wordpress.org/support/topic/static-frontpage-url-parameter-url-language-information
-		elseif ( isset( $_GET['preview'] ) && ( ( isset( $_GET['p'] ) && $id = (int) $_GET['p'] ) || ( isset( $_GET['page_id'] ) && $id = (int) $_GET['page_id'] ) ) ) {
+		elseif ( isset( $_GET['preview'] ) && ( ( isset( $_GET['p'] ) && $id = (int) $_GET['p'] ) || ( isset( $_GET['page_id'] ) && $id = (int) $_GET['page_id'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$curlang = ( $lg = $this->model->post->get_language( $id ) ) ? $lg : $this->model->get_language( $this->options['default_lang'] );
 		}
 
 		// Take care to ( unattached ) attachments
-		elseif ( isset( $_GET['attachment_id'] ) && $id = (int) $_GET['attachment_id'] ) {
+		elseif ( isset( $_GET['attachment_id'] ) && $id = (int) $_GET['attachment_id'] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			$curlang = ( $lg = $this->model->post->get_language( $id ) ) ? $lg : $this->get_preferred_language();
 		}
 

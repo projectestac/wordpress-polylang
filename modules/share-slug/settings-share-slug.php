@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Settings class to advertize the Share slugs module
@@ -6,6 +9,12 @@
  * @since 1.9
  */
 class PLL_Settings_Share_Slug extends PLL_Settings_Module {
+	/**
+	 * Stores the display order priority.
+	 *
+	 * @var int
+	 */
+	public $priority = 70;
 
 	/**
 	 * Constructor
@@ -15,11 +24,14 @@ class PLL_Settings_Share_Slug extends PLL_Settings_Module {
 	 * @param object $polylang polylang object
 	 */
 	public function __construct( &$polylang ) {
-		parent::__construct( $polylang, array(
-			'module'      => 'share-slugs',
-			'title'       => __( 'Share slugs', 'polylang' ),
-			'description' => __( 'Allows to share the same url slug across languages for posts and terms.', 'polylang' ),
-		) );
+		parent::__construct(
+			$polylang,
+			array(
+				'module'      => 'share-slugs',
+				'title'       => __( 'Share slugs', 'polylang' ),
+				'description' => __( 'Allows to share the same url slug across languages for posts and terms.', 'polylang' ),
+			)
+		);
 
 		if ( class_exists( 'PLL_Share_Post_Slug', true ) && get_option( 'permalink_structure' ) ) {
 			add_action( 'admin_print_footer_scripts', array( $this, 'print_js' ) );
@@ -53,6 +65,8 @@ class PLL_Settings_Share_Slug extends PLL_Settings_Module {
 	 * as sharing slugs is not possible when the language is set from the content
 	 *
 	 * @since 1.9
+	 *
+	 * @return void
 	 */
 	public function print_js() {
 		wp_enqueue_script( 'jquery' );
@@ -63,17 +77,19 @@ class PLL_Settings_Share_Slug extends PLL_Settings_Module {
 		?>
 		<script type='text/javascript'>
 			//<![CDATA[
-			( function( $ ){
-				$( "input[name='force_lang']" ).change( function() {
-					var value = $( this ).val();
-					if ( value > 0 ) {
-						$( "#pll-module-share-slugs" ).removeClass( "inactive" ).addClass( "active" ).children( "td" ).children( ".row-actions" ).html( '<?php echo $activated; ?>' );
-					}
-					else {
-						$( "#pll-module-share-slugs" ).removeClass( "active" ).addClass( "inactive" ).children( "td" ).children( ".row-actions" ).html( '<?php echo $deactivated; ?>' );
-					}
-				} );
-			} )( jQuery );
+			jQuery(
+				function( $ ){
+					$( "input[name='force_lang']" ).on( 'change', function() {
+						var value = $( this ).val();
+						if ( value > 0 ) {
+							$( "#pll-module-share-slugs" ).removeClass( "inactive" ).addClass( "active" ).children( "td" ).children( ".row-actions" ).html( '<?php echo $activated; // phpcs:ignore WordPress.Security.EscapeOutput ?>' );
+						}
+						else {
+							$( "#pll-module-share-slugs" ).removeClass( "active" ).addClass( "inactive" ).children( "td" ).children( ".row-actions" ).html( '<?php echo $deactivated; // phpcs:ignore WordPress.Security.EscapeOutput ?>' );
+						}
+					} );
+				}
+			);
 			// ]]>
 		</script>
 		<?php

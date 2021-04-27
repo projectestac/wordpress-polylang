@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Manages custom menus translations as well as the language switcher menu item on admin side
@@ -17,8 +20,6 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	public function __construct( &$polylang ) {
 		parent::__construct( $polylang );
 
-		$this->theme = get_option( 'stylesheet' );
-
 		// Populates nav menus locations
 		// Since WP 4.4, must be done before customize_register is fired
 		add_filter( 'theme_mod_nav_menu_locations', array( $this, 'theme_mod_nav_menu_locations' ), 20 );
@@ -32,18 +33,16 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	 * adds the language switcher metabox and create new nav menu locations
 	 *
 	 * @since 1.1
+	 *
+	 * @return void
 	 */
 	public function admin_init() {
 		add_action( 'admin_enqueue_scripts', array( $this, 'admin_enqueue_scripts' ) );
 		add_action( 'wp_update_nav_menu_item', array( $this, 'wp_update_nav_menu_item' ), 10, 2 );
-		add_filter( 'wp_get_nav_menu_items', array( $this, 'translate_switcher_title' ) );
 
 		// Translation of menus based on chosen locations
 		add_filter( 'pre_update_option_theme_mods_' . $this->theme, array( $this, 'pre_update_option_theme_mods' ) );
 		add_action( 'delete_nav_menu', array( $this, 'delete_nav_menu' ) );
-
-		// Filter _wp_auto_add_pages_to_menu by language
-		add_action( 'transition_post_status', array( $this, 'auto_add_pages_to_menu' ), 5, 3 ); // before _wp_auto_add_pages_to_menu
 
 		// FIXME is it possible to choose the order ( after theme locations in WP3.5 and older ) ?
 		// FIXME not displayed if Polylang is activated before the first time the user goes to nav menus http://core.trac.wordpress.org/ticket/16828
@@ -58,6 +57,8 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	 * Thanks to John Morris for his very interesting post http://www.johnmorrisonline.com/how-to-add-a-fully-functional-custom-meta-box-to-wordpress-navigation-menus/
 	 *
 	 * @since 1.1
+	 *
+	 * @return void
 	 */
 	public function lang_switch() {
 		global $_nav_menu_placeholder, $nav_menu_selected_id;
@@ -68,17 +69,17 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 				<ul id="lang-switch-checklist" class="categorychecklist form-no-clear">
 					<li>
 						<label class="menu-item-title">
-							<input type="checkbox" class="menu-item-checkbox" name="menu-item[<?php echo $_nav_menu_placeholder; ?>][menu-item-object-id]" value="-1"> <?php esc_html_e( 'Language switcher', 'polylang' ); ?>
+							<input type="checkbox" class="menu-item-checkbox" name="menu-item[<?php echo (int) $_nav_menu_placeholder; ?>][menu-item-object-id]" value="-1"> <?php esc_html_e( 'Languages', 'polylang' ); ?>
 						</label>
-						<input type="hidden" class="menu-item-type" name="menu-item[<?php echo $_nav_menu_placeholder; ?>][menu-item-type]" value="custom">
-						<input type="hidden" class="menu-item-title" name="menu-item[<?php echo $_nav_menu_placeholder; ?>][menu-item-title]" value="<?php esc_html_e( 'Language switcher', 'polylang' ); ?>">
-						<input type="hidden" class="menu-item-url" name="menu-item[<?php echo $_nav_menu_placeholder; ?>][menu-item-url]" value="#pll_switcher">
+						<input type="hidden" class="menu-item-type" name="menu-item[<?php echo (int) $_nav_menu_placeholder; ?>][menu-item-type]" value="custom">
+						<input type="hidden" class="menu-item-title" name="menu-item[<?php echo (int) $_nav_menu_placeholder; ?>][menu-item-title]" value="<?php esc_html_e( 'Languages', 'polylang' ); ?>">
+						<input type="hidden" class="menu-item-url" name="menu-item[<?php echo (int) $_nav_menu_placeholder; ?>][menu-item-url]" value="#pll_switcher">
 					</li>
 				</ul>
 			</div>
 			<p class="button-controls">
 				<span class="add-to-menu">
-					<input type="submit" <?php disabled( $nav_menu_selected_id, 0 ); ?> class="button-secondary submit-add-to-menu right" value="<?php esc_attr_e( 'Add to Menu' ); ?>" name="add-post-type-menu-item" id="submit-posttype-lang-switch">
+					<input type="submit" <?php disabled( $nav_menu_selected_id, 0 ); ?> class="button-secondary submit-add-to-menu right" value="<?php esc_attr_e( 'Add to Menu', 'polylang' ); ?>" name="add-post-type-menu-item" id="submit-posttype-lang-switch">
 					<span class="spinner"></span>
 				</span>
 			</p>
@@ -90,30 +91,36 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	 * Prepares javascript to modify the language switcher menu item
 	 *
 	 * @since 1.1
+	 *
+	 * @return void
 	 */
 	public function admin_enqueue_scripts() {
 		$screen = get_current_screen();
-		if ( 'nav-menus' != $screen->base ) {
+		if ( empty( $screen ) || 'nav-menus' !== $screen->base ) {
 			return;
 		}
 
 		$suffix = defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ? '' : '.min';
-		wp_enqueue_script( 'pll_nav_menu', plugins_url( '/js/nav-menu' . $suffix . '.js', POLYLANG_FILE ), array( 'jquery' ), POLYLANG_VERSION );
+		wp_enqueue_script( 'pll_nav_menu', plugins_url( '/js/build/nav-menu' . $suffix . '.js', POLYLANG_ROOT_FILE ), array( 'jquery' ), POLYLANG_VERSION );
 
-		$data['strings'] = PLL_Switcher::get_switcher_options( 'menu', 'string' ); // The strings for the options
-		$data['title'] = __( 'Language switcher', 'polylang' ); // The title
+		$data = array(
+			'strings' => PLL_Switcher::get_switcher_options( 'menu', 'string' ), // The strings for the options
+			'title'   => __( 'Languages', 'polylang' ), // The title
+			'val'     => array(),
+		);
 
 		// Get all language switcher menu items
-		$items = get_posts( array(
-			'numberposts' => -1,
-			'nopaging'    => true,
-			'post_type'   => 'nav_menu_item',
-			'fields'      => 'ids',
-			'meta_key'    => '_pll_menu_item',
-		) );
+		$items = get_posts(
+			array(
+				'numberposts' => -1,
+				'nopaging'    => true,
+				'post_type'   => 'nav_menu_item',
+				'fields'      => 'ids',
+				'meta_key'    => '_pll_menu_item',
+			)
+		);
 
 		// The options values for the language switcher
-		$data['val'] = array();
 		foreach ( $items as $item ) {
 			$data['val'][ $item ] = get_post_meta( $item, '_pll_menu_item', true );
 		}
@@ -129,9 +136,10 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	 *
 	 * @param int $menu_id not used
 	 * @param int $menu_item_db_id
+	 * @return void
 	 */
 	public function wp_update_nav_menu_item( $menu_id = 0, $menu_item_db_id = 0 ) {
-		if ( empty( $_POST['menu-item-url'][ $menu_item_db_id ] ) || '#pll_switcher' != $_POST['menu-item-url'][ $menu_item_db_id ] ) {
+		if ( empty( $_POST['menu-item-url'][ $menu_item_db_id ] ) || '#pll_switcher' !== $_POST['menu-item-url'][ $menu_item_db_id ] ) { // phpcs:ignore WordPress.Security.NonceVerification
 			return;
 		}
 
@@ -147,29 +155,12 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 				}
 			}
 			else {
-				foreach ( $options as $opt => $v ) {
+				foreach ( array_keys( $options ) as $opt ) {
 					$options[ $opt ] = empty( $_POST[ 'menu-item-' . $opt ][ $menu_item_db_id ] ) ? 0 : 1;
 				}
 				update_post_meta( $menu_item_db_id, '_pll_menu_item', $options ); // Allow us to easily identify our nav menu item
 			}
 		}
-	}
-
-	/**
-	 * Translates the language switcher menu items title in case the user switches the admin language
-	 *
-	 * @since 1.1.1
-	 *
-	 * @param array $items
-	 * @return array modified $items
-	 */
-	public function translate_switcher_title( $items ) {
-		foreach ( $items as $item ) {
-			if ( '#pll_switcher' == $item->url ) {
-				$item->post_title = __( 'Language switcher', 'polylang' );
-			}
-		}
-		return $items;
 	}
 
 	/**
@@ -181,8 +172,6 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	 * @return array
 	 */
 	public function update_nav_menu_locations( $locations ) {
-		$default = $this->options['default_lang'];
-
 		// Extract language and menu from locations
 		foreach ( $locations as $loc => $menu ) {
 			$infos = $this->explode_location( $loc );
@@ -197,25 +186,25 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	}
 
 	/**
-	 * Assign menu languages and translations based on ( temporary ) locations
+	 * Assign menu languages and translations based on ( temporary ) locations.
 	 *
 	 * @since 1.1
 	 *
-	 * @param array $mods theme mods
-	 * @return unmodified $mods
+	 * @param mixed $mods Theme mods.
+	 * @return mixed
 	 */
 	public function pre_update_option_theme_mods( $mods ) {
 		if ( current_user_can( 'edit_theme_options' ) && isset( $mods['nav_menu_locations'] ) ) {
 
 			// Manage Locations tab in Appearance -> Menus
-			if ( isset( $_GET['action'] ) && 'locations' == $_GET['action'] ) {
+			if ( isset( $_GET['action'] ) && 'locations' === $_GET['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification
 				check_admin_referer( 'save-menu-locations' );
 				$this->options['nav_menus'][ $this->theme ] = array();
 			}
 
 			// Edit Menus tab in Appearance -> Menus
 			// Add the test of $_POST['update-nav-menu-nonce'] to avoid conflict with Vantage theme
-			elseif ( isset( $_POST['action'], $_POST['update-nav-menu-nonce'] ) && 'update' == $_POST['action'] ) {
+			elseif ( isset( $_POST['action'], $_POST['update-nav-menu-nonce'] ) && 'update' === $_POST['action'] ) {
 				check_admin_referer( 'update-nav_menu', 'update-nav-menu-nonce' );
 				$this->options['nav_menus'][ $this->theme ] = array();
 			}
@@ -253,7 +242,7 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 		}
 
 		if ( is_array( $menus ) ) {
-			foreach ( $menus as $loc => $menu ) {
+			foreach ( array_keys( $menus ) as $loc ) {
 				foreach ( $this->model->get_languages_list() as $lang ) {
 					if ( ! empty( $this->options['nav_menus'][ $this->theme ][ $loc ][ $lang->slug ] ) && term_exists( $this->options['nav_menus'][ $this->theme ][ $loc ][ $lang->slug ], 'nav_menu' ) ) {
 						$menus[ $this->combine_location( $loc, $lang ) ] = $this->options['nav_menus'][ $this->theme ][ $loc ][ $lang->slug ];
@@ -271,8 +260,9 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 	 * @since 1.7.3
 	 *
 	 * @param int $term_id nav menu id
+	 * @return void
 	 */
-	function delete_nav_menu( $term_id ) {
+	public function delete_nav_menu( $term_id ) {
 		if ( isset( $this->options['nav_menus'] ) ) {
 			foreach ( $this->options['nav_menus'] as $theme => $locations ) {
 				foreach ( $locations as $loc => $languages ) {
@@ -285,50 +275,6 @@ class PLL_Admin_Nav_Menu extends PLL_Nav_Menu {
 			}
 
 			update_option( 'polylang', $this->options );
-		}
-	}
-
-	/**
-	 * Filters the option nav_menu_options for auto added pages to menu
-	 *
-	 * @since 0.9.4
-	 *
-	 * @param array $options
-	 * @return array Modified options
-	 */
-	public function nav_menu_options( $options ) {
-		$options['auto_add'] = array_intersect( $options['auto_add'], $this->auto_add_menus );
-		return $options;
-	}
-
-	/**
-	 * Filters _wp_auto_add_pages_to_menu by language
-	 *
-	 * @since 0.9.4
-	 *
-	 * @param string $new_status Transition to this post status.
-	 * @param string $old_status Previous post status.
-	 * @param object $post Post data.
-	 */
-	public function auto_add_pages_to_menu( $new_status, $old_status, $post ) {
-		if ( 'publish' != $new_status || 'publish' == $old_status || 'page' != $post->post_type || ! empty( $post->post_parent ) ) {
-			return;
-		}
-
-		if ( ! empty( $this->options['nav_menus'][ $this->theme ] ) ) {
-			$this->auto_add_menus = array();
-
-			$lang = $this->model->post->get_language( $post->ID );
-			$lang = empty( $lang ) ? $this->options['default_lang'] : $lang->slug; // If the page has no language yet, the default language will be assigned
-
-			// Get all the menus in the page language
-			foreach ( $this->options['nav_menus'][ $this->theme ] as $loc ) {
-				if ( ! empty( $loc[ $lang ] ) ) {
-					$this->auto_add_menus[] = $loc[ $lang ];
-				}
-			}
-
-			add_filter( 'option_nav_menu_options', array( $this, 'nav_menu_options' ) );
 		}
 	}
 }

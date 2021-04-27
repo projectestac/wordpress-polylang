@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * A fully static class to manage strings translations on admin side
@@ -6,15 +9,33 @@
  * @since 1.6
  */
 class PLL_Admin_Strings {
-	static protected $strings = array(); // strings to translate
-	static protected $default_strings; // default strings to register
+	/**
+	 * Stores the strings to translate.
+	 *
+	 * @var array {
+	 *   @type string $name      A unique name for the string.
+	 *   @type string $string    The actual string to translate.
+	 *   @type string $context   The group in which the string is registered.
+	 *   @type bool   $multiline Whether the string table should display a multiline textarea or a single line input.
+	 * }
+	 */
+	protected static $strings = array();
+
+	/**
+	 * The strings to register by default.
+	 *
+	 * @var string[]
+	 */
+	protected static $default_strings;
 
 	/**
 	 * Add filters
 	 *
 	 * @since 1.6
+	 *
+	 * @return void
 	 */
-	static public function init() {
+	public static function init() {
 		// default strings translations sanitization
 		add_filter( 'pll_sanitize_string_translation', array( __CLASS__, 'sanitize_string_translation' ), 10, 2 );
 	}
@@ -28,14 +49,9 @@ class PLL_Admin_Strings {
 	 * @param string $string    The string to register
 	 * @param string $context   Optional, the group in which the string is registered, defaults to 'polylang'
 	 * @param bool   $multiline Optional, whether the string table should display a multiline textarea or a single line input, defaults to single line
+	 * @return void
 	 */
-	static public function register_string( $name, $string, $context = 'Polylang', $multiline = false ) {
-		// Backward compatibility with Polylang older than 1.1
-		if ( is_bool( $context ) ) {
-			$multiline = $context;
-			$context = 'Polylang';
-		}
-
+	public static function register_string( $name, $string, $context = 'Polylang', $multiline = false ) {
 		if ( $string && is_scalar( $string ) ) {
 			self::$strings[ md5( $string ) ] = compact( 'name', 'string', 'context', 'multiline' );
 		}
@@ -48,22 +64,11 @@ class PLL_Admin_Strings {
 	 *
 	 * @return array list of all registered strings
 	 */
-	static public function &get_strings() {
+	public static function &get_strings() {
 		self::$default_strings = array(
-			'options' => array(
-				'blogname'        => __( 'Site Title' ),
-				'blogdescription' => __( 'Tagline' ),
-				'date_format'     => __( 'Date Format' ),
-				'time_format'     => __( 'Time Format' ),
-			),
 			'widget_title' => __( 'Widget title', 'polylang' ),
 			'widget_text'  => __( 'Widget text', 'polylang' ),
 		);
-
-		// WP strings
-		foreach ( self::$default_strings['options'] as $option => $string ) {
-			self::register_string( $string, get_option( $option ), 'WordPress' );
-		}
 
 		// Widgets titles
 		global $wp_registered_widgets;
@@ -117,19 +122,13 @@ class PLL_Admin_Strings {
 	 * @param string $name        unique name for the string
 	 * @return string
 	 */
-	static public function sanitize_string_translation( $translation, $name ) {
-		$translation = wp_unslash( trim( $translation ) );
-
-		if ( false !== ( $option = array_search( $name, self::$default_strings['options'], true ) ) ) {
-			$translation = sanitize_option( $option, $translation );
-		}
-
+	public static function sanitize_string_translation( $translation, $name ) {
 		if ( $name == self::$default_strings['widget_title'] ) {
-			$translation = strip_tags( $translation );
+			$translation = sanitize_text_field( $translation );
 		}
 
 		if ( $name == self::$default_strings['widget_text'] && ! current_user_can( 'unfiltered_html' ) ) {
-			$translation = wp_unslash( wp_filter_post_kses( addslashes( $translation ) ) ); // wp_filter_post_kses() expects slashed
+			$translation = wp_kses_post( $translation );
 		}
 
 		return $translation;

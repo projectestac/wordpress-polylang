@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Manages links filters and url of translations on frontend
@@ -6,8 +9,19 @@
  * @since 1.2
  */
 class PLL_Frontend_Links extends PLL_Links {
+	/**
+	 * Current language.
+	 *
+	 * @var PLL_Language
+	 */
 	public $curlang;
-	public $cache; // Our internal non persistent cache object
+
+	/**
+	 * Internal non persistent cache object.
+	 *
+	 * @var PLL_Cache
+	 */
+	public $cache;
 
 	/**
 	 * Constructor
@@ -25,11 +39,11 @@ class PLL_Frontend_Links extends PLL_Links {
 	}
 
 	/**
-	 * Returns the url of the translation ( if exists ) of the current page
+	 * Returns the url of the translation (if it exists) of the current page.
 	 *
 	 * @since 0.1
 	 *
-	 * @param object $language
+	 * @param PLL_Language $language Language object.
 	 * @return string
 	 */
 	public function get_translation_url( $language ) {
@@ -44,26 +58,25 @@ class PLL_Frontend_Links extends PLL_Links {
 		$queried_object_id = $wp_query->get_queried_object_id();
 
 		/**
-		 * Filter the translation url before Polylang attempts to find one
-		 * Internally used by Polylang for the static front page and posts page
+		 * Filters the translation url before Polylang attempts to find one.
+		 * Internally used by Polylang for the static front page and posts page.
 		 *
 		 * @since 1.8
 		 *
-		 * @param string $url               Empty or the url of the translation of teh current page
-		 * @param object $language          Language of the translation
-		 * @param int    $queried_object_id Queried object id
+		 * @param string       $url               Empty or the url of the translation of teh current page.
+		 * @param PLL_Language $language          Language of the translation.
+		 * @param int          $queried_object_id Queried object id.
 		 */
 		if ( ! $url = apply_filters( 'pll_pre_translation_url', '', $language, $queried_object_id ) ) {
 			$qv = $wp_query->query_vars;
-			$hide = $this->options['default_lang'] == $language->slug && $this->options['hide_default'];
 
 			// Post and attachment
-			if ( is_single() && ( $this->options['media_support'] || ! is_attachment() ) && ( $id = $this->model->post->get( $queried_object_id, $language ) ) && $this->current_user_can_read( $id ) ) {
+			if ( is_single() && ( $this->options['media_support'] || ! is_attachment() ) && ( $id = $this->model->post->get( $queried_object_id, $language ) ) && $this->model->post->current_user_can_read( $id ) ) {
 				$url = get_permalink( $id );
 			}
 
 			// Page
-			elseif ( is_page() && ( $id = $this->model->post->get( $queried_object_id, $language ) ) && $this->current_user_can_read( $id ) ) {
+			elseif ( is_page() && ( $id = $this->model->post->get( $queried_object_id, $language ) ) && $this->model->post->current_user_can_read( $id ) ) {
 				$url = get_page_link( $id );
 			}
 
@@ -96,7 +109,7 @@ class PLL_Frontend_Links extends PLL_Links {
 				$lang = $this->model->term->get_language( $term->term_id );
 
 				if ( ! $lang || $language->slug == $lang->slug ) {
-					$url = wpcom_vip_get_term_link( $term, $term->taxonomy ); // Self link
+					$url = get_term_link( $term, $term->taxonomy ); // Self link
 				}
 
 				elseif ( $tr_id = $this->model->term->get_translation( $term->term_id, $language ) ) {
@@ -115,7 +128,7 @@ class PLL_Frontend_Links extends PLL_Links {
 						 * @param array  $args Arguments used to evaluated the number of posts in the archive
 						 */
 						if ( ! apply_filters( 'pll_hide_archive_translation_url', ! $count, $language->slug, array( 'taxonomy' => $term->taxonomy ) ) ) {
-							$url = wpcom_vip_get_term_link( $tr_term, $term->taxonomy );
+							$url = get_term_link( $tr_term, $term->taxonomy );
 						}
 					}
 				}
@@ -181,7 +194,7 @@ class PLL_Frontend_Links extends PLL_Links {
 	 * @return string
 	 */
 	public function get_archive_url( $language ) {
-		$url = ( is_ssl() ? 'https://' : 'http://' ) . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+		$url = pll_get_requested_url();
 		$url = $this->links_model->switch_language_in_link( $url, $language );
 		$url = $this->links_model->remove_paged_from_link( $url );
 
@@ -197,12 +210,12 @@ class PLL_Frontend_Links extends PLL_Links {
 	}
 
 	/**
-	 * Returns the home url in the right language
+	 * Returns the home url in the right language.
 	 *
 	 * @since 0.1
 	 *
-	 * @param object $language  Optional, defaults to current language
-	 * @param bool   $is_search Optional, whether we need the home url for a search form, defaults to false
+	 * @param PLL_Language|string $language  Optional, defaults to current language.
+	 * @param bool                $is_search Optional, whether we need the home url for a search form, defaults to false.
 	 */
 	public function get_home_url( $language = '', $is_search = false ) {
 		if ( empty( $language ) ) {

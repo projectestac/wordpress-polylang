@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Polylang activation / de-activation class
@@ -8,29 +11,72 @@
 class PLL_Install extends PLL_Install_Base {
 
 	/**
-	 * Plugin activation for multisite
+	 * Checks min PHP and WP version, displays a notice if a requirement is not met.
 	 *
-	 * @since 0.1
+	 * @since 2.6.7
 	 *
-	 * @param bool $networkwide
+	 * @return bool
 	 */
-	public function activate( $networkwide ) {
+	public function can_activate() {
 		global $wp_version;
 
-		Polylang::define_constants();
-
-		load_plugin_textdomain( 'polylang', false, basename( POLYLANG_DIR ) . '/languages' ); // plugin i18n
+		if ( version_compare( PHP_VERSION, PLL_MIN_PHP_VERSION, '<' ) ) {
+			add_action( 'admin_notices', array( $this, 'php_version_notice' ) );
+			return false;
+		}
 
 		if ( version_compare( $wp_version, PLL_MIN_WP_VERSION, '<' ) ) {
-			die( sprintf( '<p style = "font-family: sans-serif; font-size: 12px; color: #333; margin: -5px">%s</p>',
-				/* translators: %1$s and %2$s are WordPress version numbers */
-				sprintf( esc_html__( 'You are using WordPress %1$s. Polylang requires at least WordPress %2$s.', 'polylang' ),
-					esc_html( $wp_version ),
-					PLL_MIN_WP_VERSION
-				)
-			) );
+			add_action( 'admin_notices', array( $this, 'wp_version_notice' ) );
+			return false;
 		}
-		$this->do_for_all_blogs( 'activate', $networkwide );
+
+		return true;
+	}
+
+	/**
+	 * Displays a notice if PHP min version is not met.
+	 *
+	 * @since 2.6.7
+	 *
+	 * @return void
+	 */
+	public function php_version_notice() {
+		load_plugin_textdomain( 'polylang' ); // Plugin i18n.
+
+		printf(
+			'<div class="error"><p>%s</p></div>',
+			sprintf(
+				/* translators: 1: Plugin name 2: Current PHP version 3: Required PHP version */
+				esc_html__( '%1$s has deactivated itself because you are using an old version of PHP. You are using using PHP %2$s. %1$s requires PHP %3$s.', 'polylang' ),
+				esc_html( POLYLANG ),
+				PHP_VERSION,
+				esc_html( PLL_MIN_PHP_VERSION )
+			)
+		);
+	}
+
+	/**
+	 * Displays a notice if WP min version is not met.
+	 *
+	 * @since 2.6.7
+	 *
+	 * @return void
+	 */
+	public function wp_version_notice() {
+		global $wp_version;
+
+		load_plugin_textdomain( 'polylang' ); // Plugin i18n.
+
+		printf(
+			'<div class="error"><p>%s</p></div>',
+			sprintf(
+				/* translators: 1: Plugin name 2: Current WordPress version 3: Required WordPress version */
+				esc_html__( '%1$s has deactivated itself because you are using an old version of WordPress. You are using using WordPress %2$s. %1$s requires at least WordPress %3$s.', 'polylang' ),
+				esc_html( POLYLANG ),
+				esc_html( $wp_version ),
+				esc_html( PLL_MIN_WP_VERSION )
+			)
+		);
 	}
 
 	/**
@@ -38,9 +84,9 @@ class PLL_Install extends PLL_Install_Base {
 	 *
 	 * @since 1.8
 	 *
-	 * return array
+	 * @return array
 	 */
-	static public function get_default_options() {
+	public static function get_default_options() {
 		return array(
 			'browser'          => 1, // Default language for the front page is set by browser preference
 			'rewrite'          => 1, // Remove /language/ in permalinks ( was the opposite before 0.7.2 )
@@ -62,6 +108,8 @@ class PLL_Install extends PLL_Install_Base {
 	 * Plugin activation
 	 *
 	 * @since 0.5
+	 *
+	 * @return void
 	 */
 	protected function _activate() {
 		if ( $options = get_option( 'polylang' ) ) {
@@ -91,6 +139,8 @@ class PLL_Install extends PLL_Install_Base {
 	 * Plugin deactivation
 	 *
 	 * @since 0.5
+	 *
+	 * @return void
 	 */
 	protected function _deactivate() {
 		delete_option( 'rewrite_rules' ); // Don't use flush_rewrite_rules at network activation. See #32471

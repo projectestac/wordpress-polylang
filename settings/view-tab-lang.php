@@ -1,7 +1,8 @@
 <?php
-
 /**
  * Displays the languages tab in Polylang settings
+ *
+ * @package Polylang
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -18,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<div class="metabox-holder">
 				<?php
 				wp_nonce_field( 'closedpostboxes', 'closedpostboxesnonce', false );
-				do_meta_boxes( 'settings_page_mlang', 'normal', array() );
+				do_meta_boxes( 'toplevel_page_mlang', 'normal', array() );
 				?>
 			</div>
 		</div><!-- col-wrap -->
@@ -28,7 +29,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<div class="col-wrap">
 
 			<div class="form-wrap">
-				<h3><?php echo ! empty( $edit_lang ) ? esc_html__( 'Edit language', 'polylang' ) : esc_html__( 'Add new language', 'polylang' ); ?></h3>
+				<h2><?php echo ! empty( $edit_lang ) ? esc_html__( 'Edit language', 'polylang' ) : esc_html__( 'Add new language', 'polylang' ); ?></h2>
 				<?php
 				// Displays the add ( or edit ) language form
 				// Adds noheader=true in the action url to allow using wp_redirect when processing the form
@@ -54,13 +55,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 							<option value=""></option>
 							<?php
 							foreach ( $this->get_predefined_languages() as $lg ) {
+								$lg['flag_code'] = $lg['flag'];
+								$language = new PLL_Language( $lg );
+								$language->set_flag();
 								printf(
-									'<option value="%1$s:%2$s:%3$s:%4$s">%5$s - %2$s</option>' . "\n",
+									'<option value="%1$s:%2$s:%3$s:%4$s" data-flag-html="%6$s">%5$s - %2$s</option>' . "\n",
 									esc_attr( $lg['code'] ),
 									esc_attr( $lg['locale'] ),
 									'rtl' == $lg['dir'] ? '1' : '0',
 									esc_attr( $lg['flag'] ),
-									esc_html( $lg['name'] )
+									esc_html( $lg['name'] ),
+									esc_html( $language->flag )
 								);
 							}
 							?>
@@ -106,12 +111,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<?php
 						printf(
 							'<label><input name="rtl" type="radio" value="0" %s /> %s</label>',
-							! empty( $edit_lang ) && $edit_lang->is_rtl ? '' : 'checked="checked"',
+							checked( ! empty( $edit_lang ) && $edit_lang->is_rtl, false, false ),
 							esc_html__( 'left to right', 'polylang' )
 						);
 						printf(
 							'<label><input name="rtl" type="radio" value="1" %s /> %s</label>',
-							! empty( $edit_lang ) && $edit_lang->is_rtl ? 'checked="checked"' : '',
+							checked( ! empty( $edit_lang ) && $edit_lang->is_rtl, true, false ),
 							esc_html__( 'right to left', 'polylang' )
 						);
 						?>
@@ -123,12 +128,13 @@ if ( ! defined( 'ABSPATH' ) ) {
 						<select name="flag" id="flag_list">
 							<option value=""></option>
 							<?php
-							include PLL_SETTINGS_INC . '/flags.php';
+							$flags = include __DIR__ . '/flags.php';
 							foreach ( $flags as $code => $label ) {
 								printf(
-									'<option value="%1$s"%2$s>%3$s</option>' . "\n",
+									'<option value="%s" data-flag-html="%s"%s>%s</option>' . "\n",
 									esc_attr( $code ),
-									isset( $edit_lang->flag_code ) && $edit_lang->flag_code == $code ? ' selected="selected"' : '',
+									esc_html( PLL_Language::get_flag_html( PLL_Language::get_flag_informations( $code ) ) ),
+									selected( isset( $edit_lang->flag_code ) && $edit_lang->flag_code === $code, true, false ),
 									esc_html( $label )
 								);
 							}
@@ -154,7 +160,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 						 *
 						 * @since 1.7.10
 						 *
-						 * @param object $lang language being edited.
+						 * @param PLL_Language $lang language being edited.
 						 */
 						do_action( 'pll_language_edit_form_fields', $edit_lang );
 					} else {
@@ -166,21 +172,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 						do_action( 'pll_language_add_form_fields' );
 					}
 
-					submit_button( ! empty( $edit_lang ) ? __( 'Update' ) : __( 'Add new language', 'polylang' ) ); // since WP 3.1
+					submit_button( ! empty( $edit_lang ) ? __( 'Update', 'polylang' ) : __( 'Add new language', 'polylang' ) ); // since WP 3.1
 					?>
 				</form>
 			</div><!-- form-wrap -->
 		</div><!-- col-wrap -->
 	</div><!-- col-left -->
 </div><!-- col-container -->
-
-<script type="text/javascript">
-	//<![CDATA[
-	jQuery( document ).ready( function( $ ) {
-		// close postboxes that should be closed
-		$( '.if-js-closed' ).removeClass( 'if-js-closed' ).addClass( 'closed' );
-		// postboxes setup
-		postboxes.add_postbox_toggles( 'settings_page_mlang' );
-	} );
-	//]]>
-</script>

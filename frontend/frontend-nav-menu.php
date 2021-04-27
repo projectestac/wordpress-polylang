@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Manages custom menus translations as well as the language switcher menu item on frontend
@@ -6,6 +9,11 @@
  * @since 1.2
  */
 class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
+	/**
+	 * Current language.
+	 *
+	 * @var PLL_Language
+	 */
 	public $curlang;
 
 	/**
@@ -30,19 +38,19 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 		add_filter( 'wp_nav_menu_args', array( $this, 'wp_nav_menu_args' ) );
 
 		// The customizer
-		if ( isset( $_POST['wp_customize'], $_POST['customized'] ) ) {
+		if ( isset( $_POST['wp_customize'], $_POST['customized'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
 			add_filter( 'wp_nav_menu_args', array( $this, 'filter_args_before_customizer' ) );
 			add_filter( 'wp_nav_menu_args', array( $this, 'filter_args_after_customizer' ), 2000 );
 		}
 	}
 
 	/**
-	 * Sort menu items by menu order
+	 * Sorts menu items by menu order.
 	 *
 	 * @since 1.7.9
 	 *
-	 * @param object $a The first object to compare
-	 * @param object $b The second object to compare
+	 * @param stdClass $a The first object to compare.
+	 * @param stdClass $b The second object to compare.
 	 * @return int -1 or 1 if $a is considered to be respectively less than or greater than $b.
 	 */
 	protected function usort_menu_items( $a, $b ) {
@@ -73,13 +81,13 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 	}
 
 	/**
-	 * Splits the one item of backend in several items on frontend
-	 * take care to menu_order as it is used later in wp_nav_menu
+	 * Splits the one language switcher menu item of backend in several menu items on frontend.
+	 * Takes care to menu_order as it is used later in wp_nav_menu().
 	 *
 	 * @since 1.1.1
 	 *
-	 * @param array $items menu items
-	 * @return array modified items
+	 * @param stdClass[] $items Menu items.
+	 * @return stdClass[] Modified menu items.
 	 */
 	public function wp_get_nav_menu_items( $items ) {
 		if ( doing_action( 'customize_register' ) ) { // needed since WP 4.3, doing_action available since WP 3.9
@@ -92,17 +100,23 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 		$new_items = array();
 		$offset = 0;
 
-		foreach ( $items as $key => $item ) {
+		foreach ( $items as $item ) {
 			if ( $options = get_post_meta( $item->ID, '_pll_menu_item', true ) ) {
 				$i = 0;
 
-				$switcher = new PLL_Switcher;
+				/** This filter is documented in include/switcher.php */
+				$options = apply_filters( 'pll_the_languages_args', $options ); // Honor the filter here for 'show_flags', 'show_names' and 'dropdown'.
+
+				$switcher = new PLL_Switcher();
 				$args = array_merge( array( 'raw' => 1 ), $options );
+
+				/** @var array */
 				$the_languages = $switcher->the_languages( PLL()->links, $args );
 
 				// parent item for dropdown
 				if ( ! empty( $options['dropdown'] ) ) {
-					$item->title = $this->get_item_title( $this->curlang->flag, $this->curlang->name, $options );
+					$name = isset( $options['display_names_as'] ) && 'slug' === $options['display_names_as'] ? $this->curlang->slug : $this->curlang->name;
+					$item->title = $this->get_item_title( $this->curlang->get_display_flag(), $name, $options );
 					$item->attr_title = '';
 					$item->classes = array( 'pll-parent-menu-item' );
 					$new_items[] = $item;
@@ -134,12 +148,12 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 	}
 
 	/**
-	 * Returns the ancestors of a menu item
+	 * Returns the ancestors of a menu item.
 	 *
 	 * @since 1.1.1
 	 *
-	 * @param object $item
-	 * @return array ancestors ids
+	 * @param stdClass $item Menu item.
+	 * @return int[] Ancestors ids.
 	 */
 	public function get_ancestors( $item ) {
 		$ids = array();
@@ -151,12 +165,12 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 	}
 
 	/**
-	 * Removes current-menu and current-menu-ancestor classes to lang switcher when not on the home page
+	 * Removes current-menu and current-menu-ancestor classes to lang switcher when not on the home page.
 	 *
 	 * @since 1.1.1
 	 *
-	 * @param array $items
-	 * @return array modified menu items
+	 * @param stdClass[] $items An array of menu items.
+	 * @return stdClass[]
 	 */
 	public function wp_nav_menu_objects( $items ) {
 		$r_ids = $k_ids = array();
@@ -185,14 +199,14 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 	}
 
 	/**
-	 * Adds hreflang attribute for the language switcher menu items
-	 * available since WP 3.6
+	 * Adds hreflang attribute for the language switcher menu items.
+	 * available since WP 3.6.
 	 *
 	 * @since 1.1
 	 *
-	 * @param array  $atts
-	 * @param object $item
-	 * @return array modified $atts
+	 * @param string[] $atts HTML attributes applied to the menu item's `<a>` element.
+	 * @param stdClass $item Menu item.
+	 * @return string[] Modified attributes.
 	 */
 	public function nav_menu_link_attributes( $atts, $item ) {
 		if ( isset( $item->lang ) ) {
@@ -215,25 +229,21 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 			// First get multilingual menu locations from DB
 			$theme = get_option( 'stylesheet' );
 
-			foreach ( $menus as $loc => $menu ) {
+			foreach ( array_keys( $menus ) as $loc ) {
 				$menus[ $loc ] = empty( $this->options['nav_menus'][ $theme ][ $loc ][ $this->curlang->slug ] ) ? 0 : $this->options['nav_menus'][ $theme ][ $loc ][ $this->curlang->slug ];
 			}
 
 			// Support for theme customizer
-			// Let's look for multilingual menu locations directly in $_POST as there are not in customizer object
-			if ( isset( $_POST['wp_customize'], $_POST['customized'] ) ) {
-				$customized = json_decode( wp_unslash( $_POST['customized'] ) );
-
-				if ( is_object( $customized ) ) {
-					foreach ( $customized as $key => $c ) {
-						if ( false !== strpos( $key, 'nav_menu_locations[' ) ) {
-							$loc = substr( trim( $key, ']' ), 19 );
-							$infos = $this->explode_location( $loc );
-							if ( $infos['lang'] == $this->curlang->slug ) {
-								$menus[ $infos['location'] ] = $c;
-							} elseif ( $this->curlang->slug == $this->options['default_lang'] ) {
-								$menus[ $loc ] = $c;
-							}
+			if ( is_customize_preview() ) {
+				global $wp_customize;
+				foreach ( $wp_customize->unsanitized_post_values() as $key => $value ) {
+					if ( false !== strpos( $key, 'nav_menu_locations[' ) ) {
+						$loc = substr( trim( $key, ']' ), 19 );
+						$infos = $this->explode_location( $loc );
+						if ( $infos['lang'] === $this->curlang->slug ) {
+							$menus[ $infos['location'] ] = (int) $value;
+						} elseif ( $this->curlang->slug === $this->options['default_lang'] ) {
+							$menus[ $loc ] = (int) $value;
 						}
 					}
 				}
@@ -275,7 +285,7 @@ class PLL_Frontend_Nav_Menu extends PLL_Nav_Menu {
 		if ( ! $menu && ! $args['theme_location'] ) {
 			$menus = wp_get_nav_menus();
 			foreach ( $menus as $menu_maybe ) {
-				if ( $menu_items = wp_get_nav_menu_items( $menu_maybe->term_id, array( 'update_post_term_cache' => false ) ) ) {
+				if ( wp_get_nav_menu_items( $menu_maybe->term_id, array( 'update_post_term_cache' => false ) ) ) {
 					foreach ( $this->options['nav_menus'][ $theme ] as $menus ) {
 						if ( in_array( $menu_maybe->term_id, $menus ) && ! empty( $menus[ $this->curlang->slug ] ) ) {
 							$args['menu'] = $menus[ $this->curlang->slug ];

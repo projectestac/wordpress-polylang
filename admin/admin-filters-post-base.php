@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Some common code for PLL_Admin_Filters_Post and PLL_Admin_Filters_Media
@@ -6,7 +9,22 @@
  * @since 1.5
  */
 abstract class PLL_Admin_Filters_Post_Base {
-	public $links, $model, $pref_lang;
+	/**
+	 * @var PLL_Model
+	 */
+	public $model;
+
+	/**
+	 * @var PLL_Links
+	 */
+	public $links;
+
+	/**
+	 * Language selected in the admin language filter.
+	 *
+	 * @var PLL_Language
+	 */
+	public $filter_lang;
 
 	/**
 	 * Constructor: setups filters and actions
@@ -22,42 +40,21 @@ abstract class PLL_Admin_Filters_Post_Base {
 	}
 
 	/**
-	 * Allows to set a language by default for posts if it has no language yet
+	 * Save translations from the languages metabox.
 	 *
 	 * @since 1.5
 	 *
-	 * @param int $post_id
-	 */
-	public function set_default_language( $post_id ) {
-		if ( ! $this->model->post->get_language( $post_id ) ) {
-			if ( isset( $_GET['new_lang'] ) && $lang = $this->model->get_language( $_GET['new_lang'] ) ) {
-				$this->model->post->set_language( $post_id, $lang );
-			}
-
-			elseif ( ( $parent_id = wp_get_post_parent_id( $post_id ) ) && $parent_lang = $this->model->post->get_language( $parent_id ) ) {
-				$this->model->post->set_language( $post_id, $parent_lang );
-			}
-
-			else {
-				$this->model->post->set_language( $post_id, $this->pref_lang );
-			}
-		}
-	}
-
-	/**
-	 * Save translations from language metabox
-	 *
-	 * @since 1.5
-	 *
-	 * @param int   $post_id
-	 * @param array $arr
-	 * @return array
+	 * @param int   $post_id Post id of the post being saved.
+	 * @param int[] $arr     An array with language codes as key and post id as value.
+	 * @return int[] The array of translated post ids.
 	 */
 	protected function save_translations( $post_id, $arr ) {
-		// Security check as 'wp_insert_post' can be called from outside WP admin
+		// Security check as 'wp_insert_post' can be called from outside WP admin.
 		check_admin_referer( 'pll_language', '_pll_nonce' );
 
-		// Save translations after checking the translated post is in the right language
+		$translations = array();
+
+		// Save translations after checking the translated post is in the right language.
 		foreach ( $arr as $lang => $tr_id ) {
 			$translations[ $lang ] = ( $tr_id && $this->model->post->get_language( (int) $tr_id )->slug == $lang ) ? (int) $tr_id : 0;
 		}

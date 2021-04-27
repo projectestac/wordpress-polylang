@@ -1,4 +1,7 @@
 <?php
+/**
+ * @package Polylang
+ */
 
 /**
  * Filters content by language on frontend
@@ -6,7 +9,12 @@
  * @since 1.2
  */
 class PLL_Frontend_Filters extends PLL_Filters {
-	private $tax_query_lang;
+	/**
+	 * Internal non persistent cache object.
+	 *
+	 * @var PLL_Cache
+	 */
+	public $cache;
 
 	/**
 	 * Constructor: setups filters and actions
@@ -18,26 +26,20 @@ class PLL_Frontend_Filters extends PLL_Filters {
 	public function __construct( &$polylang ) {
 		parent::__construct( $polylang );
 
+		$this->cache = new PLL_Cache();
+
 		// Filters the WordPress locale
 		add_filter( 'locale', array( $this, 'get_locale' ) );
 
 		// Filter sticky posts by current language
 		add_filter( 'option_sticky_posts', array( $this, 'option_sticky_posts' ) );
 
-		// Adds cache domain when querying terms
-		add_filter( 'get_terms_args', array( $this, 'get_terms_args' ) );
-
-		// Filters categories and post tags by language
-		add_filter( 'terms_clauses', array( $this, 'terms_clauses' ), 10, 3 );
-		add_action( 'pre_get_posts', array( $this, 'set_tax_query_lang' ), 999 );
-		add_action( 'posts_selection', array( $this, 'unset_tax_query_lang' ), 0 );
-
 		// Rewrites archives links to filter them by language
 		add_filter( 'getarchives_join', array( $this, 'getarchives_join' ), 10, 2 );
 		add_filter( 'getarchives_where', array( $this, 'getarchives_where' ), 10, 2 );
 
 		// Filters the widgets according to the current language
-		add_filter( 'widget_display_callback', array( $this, 'widget_display_callback' ), 10, 2 );
+		add_filter( 'widget_display_callback', array( $this, 'widget_display_callback' ) );
 		add_filter( 'sidebars_widgets', array( $this, 'sidebars_widgets' ) );
 
 		if ( $this->options['media_support'] ) {
@@ -45,31 +47,14 @@ class PLL_Frontend_Filters extends PLL_Filters {
 		}
 
 		// Strings translation ( must be applied before WordPress applies its default formatting filters )
-		foreach ( array( 'widget_text', 'widget_title', 'option_blogname', 'option_blogdescription', 'option_date_format', 'option_time_format' ) as $filter ) {
+		foreach ( array( 'widget_text', 'widget_title' ) as $filter ) {
 			add_filter( $filter, 'pll__', 1 );
 		}
 
 		// Translates biography
 		add_filter( 'get_user_metadata', array( $this, 'get_user_metadata' ), 10, 4 );
 
-		// Set posts and terms language when created from frontend ( ex with P2 theme )
-		add_action( 'save_post', array( $this, 'save_post' ), 200, 2 );
-		add_action( 'create_term', array( $this, 'save_term' ), 10, 3 );
-		add_action( 'edit_term', array( $this, 'save_term' ), 10, 3 );
-
-		if ( $this->options['media_support'] ) {
-			add_action( 'add_attachment', array( $this, 'set_default_language' ) );
-		}
-
-		// Support theme customizer
-		// FIXME of course does not work if 'transport' is set to 'postMessage'
-		if ( isset( $_POST['wp_customize'], $_POST['customized'] ) ) {
-			add_filter( 'pre_option_blogname', 'pll__', 20 );
-			add_filter( 'pre_option_blogdescription', 'pll__', 20 );
-		}
-
-		// FIXME test get_user_locale for backward compatibility with WP < 4.7
-		if ( Polylang::is_ajax_on_front() && function_exists( 'get_user_locale' ) ) {
+		if ( Polylang::is_ajax_on_front() ) {
 			add_filter( 'load_textdomain_mofile', array( $this, 'load_textdomain_mofile' ) );
 		}
 	}
@@ -79,25 +64,25 @@ class PLL_Frontend_Filters extends PLL_Filters {
 	 *
 	 * @since 0.1
 	 *
-	 * @param string $locale
 	 * @return string
 	 */
-	public function get_locale( $locale ) {
+	public function get_locale() {
 		return $this->curlang->locale;
 	}
 
 	/**
-	 * Filters sticky posts by current language
+	 * Filters sticky posts by current language.
 	 *
 	 * @since 0.8
 	 *
-	 * @param array $posts list of sticky posts ids
-	 * @return array modified list of sticky posts ids
+	 * @param int[] $posts List of sticky posts ids.
+	 * @return int[] Modified list of sticky posts ids
 	 */
 	public function option_sticky_posts( $posts ) {
 		global $wpdb;
 
-		if ( $this->curlang && ! empty( $posts ) ) {
+		// Do not filter sticky posts on REST requests as $this->curlang is *not* the 'lang' parameter set in the request
+		if ( ! defined( 'REST_REQUEST' ) && ! empty( $this->curlang ) && ! empty( $posts ) ) {
 			$_posts = wp_cache_get( 'sticky_posts', 'options' ); // This option is usually cached in 'all_options' by WP
 
 			if ( empty( $_posts ) || ! is_array( $_posts[ $this->curlang->term_taxonomy_id ] ) ) {
@@ -108,10 +93,11 @@ class PLL_Frontend_Filters extends PLL_Filters {
 				$_posts = array_fill_keys( $languages, array() ); // Init with empty arrays
 				$languages = implode( ',', $languages );
 
+				// PHPCS:ignore WordPress.DB.PreparedSQL
 				$relations = $wpdb->get_results( "SELECT object_id, term_taxonomy_id FROM {$wpdb->term_relationships} WHERE object_id IN ({$posts}) AND term_taxonomy_id IN ({$languages})" );
 
 				foreach ( $relations as $relation ) {
-					$_posts[ $relation->term_taxonomy_id ][] = $relation->object_id;
+					$_posts[ $relation->term_taxonomy_id ][] = (int) $relation->object_id;
 				}
 				wp_cache_add( 'sticky_posts', $_posts, 'options' );
 			}
@@ -120,72 +106,6 @@ class PLL_Frontend_Filters extends PLL_Filters {
 		}
 
 		return $posts;
-	}
-
-	/**
-	 * Adds language dependent cache domain when querying terms
-	 * useful as the 'lang' parameter is not included in cache key by WordPress
-	 *
-	 * @since 1.3
-	 *
-	 * @param array $args
-	 * @return array
-	 */
-	public function get_terms_args( $args ) {
-		if ( isset( $args['lang'] ) ) {
-			$lang = $args['lang'];
-		} elseif ( isset( $this->tax_query_lang ) ) {
-			$lang = $args['lang'] = empty( $this->tax_query_lang ) && ! empty( $args['slug'] ) ? $this->curlang->slug : $this->tax_query_lang;
-		} else {
-			$lang = $this->curlang->slug;
-		}
-
-		$key = '_' . ( is_array( $lang ) ? implode( ',', $lang ) : $lang );
-		$args['cache_domain'] = empty( $args['cache_domain'] ) ? 'pll' . $key : $args['cache_domain'] . $key;
-		return $args;
-	}
-
-	/**
-	 * Filters categories and post tags by language when needed
-	 *
-	 * @since 0.2
-	 *
-	 * @param array $clauses    sql clauses
-	 * @param array $taxonomies
-	 * @param array $args       get_terms arguments
-	 * @return array modified sql clauses
-	 */
-	public function terms_clauses( $clauses, $taxonomies, $args ) {
-		// Does nothing except on taxonomies which are filterable
-		// Since WP 4.7, make sure not to filter wp_get_object_terms()
-		if ( ! $this->model->is_translated_taxonomy( $taxonomies ) || ! empty( $args['object_ids'] ) ) {
-			return $clauses;
-		}
-
-		// Adds our clauses to filter by language
-		return $this->model->terms_clauses( $clauses, isset( $args['lang'] ) ? $args['lang'] : $this->curlang );
-	}
-
-	/**
-	 * Sets the WP_Term_Query language when doing a WP_Query
-	 * Needed since WP 4.9
-	 *
-	 * @since 2.3.2
-	 *
-	 * @param object $query WP_Query object
-	 */
-	public function set_tax_query_lang( $query ) {
-		$this->tax_query_lang = isset( $query->query_vars['lang'] ) ? $query->query_vars['lang'] : '';
-	}
-
-	/**
-	 * Removes the WP_Term_Query language filter for WP_Query
-	 * Needed since WP 4.9
-	 *
-	 * @since 2.3.2
-	 */
-	public function unset_tax_query_lang() {
-		unset( $this->tax_query_lang );
 	}
 
 	/**
@@ -220,11 +140,11 @@ class PLL_Frontend_Filters extends PLL_Filters {
 	 *
 	 * @since 0.3
 	 *
-	 * @param array  $instance widget settings
-	 * @param object $widget   WP_Widget object
+	 * @param array $instance Widget settings
 	 * @return bool|array false if we hide the widget, unmodified $instance otherwise
 	 */
-	public function widget_display_callback( $instance, $widget ) {
+	public function widget_display_callback( $instance ) {
+		// FIXME it looks like this filter is useless, now the we use the filter sidebars_widgets
 		return ! empty( $instance['pll_lang'] ) && $instance['pll_lang'] != $this->curlang->slug ? false : $instance;
 	}
 
@@ -233,6 +153,7 @@ class PLL_Frontend_Filters extends PLL_Filters {
 	 * Needed to allow is_active_sidebar() to return false if all widgets are not for the current language. See #54
 	 *
 	 * @since 2.1
+	 * @since 2.4 The result is cached as the function can be very expensive in case there are a lot of widgets
 	 *
 	 * @param array $sidebars_widgets An associative array of sidebars and their widgets
 	 * @return array
@@ -240,8 +161,19 @@ class PLL_Frontend_Filters extends PLL_Filters {
 	public function sidebars_widgets( $sidebars_widgets ) {
 		global $wp_registered_widgets;
 
+		if ( empty( $wp_registered_widgets ) ) {
+			return $sidebars_widgets;
+		}
+
+		$cache_key         = md5( maybe_serialize( $sidebars_widgets ) );
+		$_sidebars_widgets = $this->cache->get( "sidebars_widgets_{$cache_key}" );
+
+		if ( false !== $_sidebars_widgets ) {
+			return $_sidebars_widgets;
+		}
+
 		foreach ( $sidebars_widgets as $sidebar => $widgets ) {
-			if ( 'wp_inactive_widgets' == $sidebar || empty( $widgets ) ) {
+			if ( 'wp_inactive_widgets' === $sidebar || empty( $widgets ) ) {
 				continue;
 			}
 
@@ -253,7 +185,7 @@ class PLL_Frontend_Filters extends PLL_Filters {
 				}
 
 				$widget_settings = $wp_registered_widgets[ $widget ]['callback'][0]->get_settings();
-				$number = $wp_registered_widgets[ $widget ]['params'][0]['number'];
+				$number          = $wp_registered_widgets[ $widget ]['params'][0]['number'];
 
 				// Remove the widget if not visible in the current language
 				if ( ! empty( $widget_settings[ $number ]['pll_lang'] ) && $widget_settings[ $number ]['pll_lang'] !== $this->curlang->slug ) {
@@ -261,6 +193,8 @@ class PLL_Frontend_Filters extends PLL_Filters {
 				}
 			}
 		}
+
+		$this->cache->set( "sidebars_widgets_{$cache_key}", $sidebars_widgets );
 
 		return $sidebars_widgets;
 	}
@@ -306,64 +240,6 @@ class PLL_Frontend_Filters extends PLL_Filters {
 	 */
 	public function get_user_metadata( $null, $id, $meta_key, $single ) {
 		return 'description' === $meta_key && $this->curlang->slug !== $this->options['default_lang'] ? get_user_meta( $id, 'description_' . $this->curlang->slug, $single ) : $null;
-	}
-
-	/**
-	 * Allows to set a language by default for posts if it has no language yet
-	 *
-	 * @since 1.5.4
-	 *
-	 * @param int $post_id
-	 */
-	public function set_default_language( $post_id ) {
-		if ( ! $this->model->post->get_language( $post_id ) ) {
-			if ( isset( $_REQUEST['lang'] ) ) {
-				$this->model->post->set_language( $post_id, $_REQUEST['lang'] );
-			} elseif ( ( $parent_id = wp_get_post_parent_id( $post_id ) ) && $parent_lang = $this->model->post->get_language( $parent_id ) ) {
-				$this->model->post->set_language( $post_id, $parent_lang );
-			} else {
-				$this->model->post->set_language( $post_id, $this->curlang );
-			}
-		}
-	}
-
-	/**
-	 * Called when a post ( or page ) is saved, published or updated
-	 * Does nothing except on post types which are filterable
-	 * Sets the language but does not allow to modify it
-	 *
-	 * @since 1.1
-	 *
-	 * @param int    $post_id
-	 * @param object $post
-	 */
-	public function save_post( $post_id, $post ) {
-		if ( $this->model->is_translated_post_type( $post->post_type ) ) {
-			$this->set_default_language( $post_id );
-		}
-	}
-
-	/**
-	 * Called when a category or post tag is created or edited
-	 * Does nothing except on taxonomies which are filterable
-	 * Sets the language but does not allow to modify it
-	 *
-	 * @since 1.1
-	 *
-	 * @param int    $term_id
-	 * @param int    $tt_id    Term taxonomy id
-	 * @param string $taxonomy
-	 */
-	public function save_term( $term_id, $tt_id, $taxonomy ) {
-		if ( $this->model->is_translated_taxonomy( $taxonomy ) && ! $this->model->term->get_language( $term_id ) ) {
-			if ( isset( $_REQUEST['lang'] ) ) {
-				$this->model->term->set_language( $term_id, $_REQUEST['lang'] );
-			} elseif ( ( $term = get_term( $term_id, $taxonomy ) ) && ! empty( $term->parent ) && $parent_lang = $this->model->term->get_language( $term->parent ) ) {
-				$this->model->term->set_language( $term_id, $parent_lang );
-			} else {
-				$this->model->term->set_language( $term_id, $this->curlang );
-			}
-		}
 	}
 
 	/**
