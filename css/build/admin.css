@@ -3,6 +3,19 @@
 	width: 95%;
 }
 
+#add-lang label {
+	margin: 0.35em 0 0.5em;
+}
+
+.pll-legend {
+	display: block;
+	padding: 2px 0;
+	color: #1d2327;
+	font-weight: 400;
+	text-shadow: none;
+	margin: 0.35em 0 0.5em;
+}
+
 .column-locale,
 .languages .column-slug {
 	width : 15%
@@ -28,11 +41,6 @@
 }
 .pll-circle:before{
 	content: "\25cf";
-}
-
-.form-field input[type="radio"] {
-	width: auto;
-	margin-right: 2px;
 }
 
 /* about Polylang metabox */
@@ -187,8 +195,17 @@
 }
 
 /* languages metabox in post.php */
+#ml_box p {
+	margin-top: 1em;
+}
+
 #post-translations p {
 	float: left;
+	margin-top: 1em;
+}
+
+.rtl #post-translations p {
+	float: right;
 }
 
 #post-translations table {
@@ -222,13 +239,15 @@
 	width: auto;
 }
 
-.pll-column-icon {
-	text-align: center;
-}
-
 #select-post-language .pll-select-flag {
 	padding: 4px;
-	margin-right: 32px;
+	margin-right: 10px;
+}
+
+.rtl #select-post-language .pll-select-flag {
+    padding: 4px;
+    margin-right: 0px;
+    margin-left: 10px;
 }
 
 /* specific cases for media */
@@ -313,6 +332,14 @@
 	top: 1px;
 }
 
+#wp-admin-bar-languages.pll-filtered-languages {
+	background: #a03f3f;
+}
+
+#wpadminbar #wp-admin-bar-languages.pll-filtered-languages span.ab-label{ /* Enforce white color for WordPress admin light theme. */
+		color: #fff;
+}
+
 /* Notices */
 .pll-notice.notice {
 	padding-right: 38px;
@@ -325,25 +352,6 @@
 
 .pll-notice .button {
 	margin-right: 10px;
-}
-
-/* Metaboxes holder in Strings translations screen */
-.languages_page_mlang_strings .metabox-holder > div {
-	display: flex;
-}
-.languages_page_mlang_strings .metabox-holder > div > div {
-	flex-grow: 1;
-}
-.languages_page_mlang_strings .metabox-holder > div > div:nth-child(2n) {
-	margin-left: 1rem;
-}
-.languages_page_mlang_strings .metabox-holder > div > div.closed {
-	border:0;
-	background: none;
-}
-.languages_page_mlang_strings .metabox-holder > div > div.closed .postbox-header{
-	border: 1px solid #ccd0d4;
-	background: #fff;
 }
 
 @media screen and ( max-width: 782px ) {
@@ -385,14 +393,6 @@
 	.translation input,
 	.translation textarea {
 		width: 95%;
-	}
-
-	/* Metaboxes holder in Strings translations screen */
-	.languages_page_mlang_strings .metabox-holder > div {
-		flex-direction: column;
-	}
-	.languages_page_mlang_strings .metabox-holder > div > div:nth-child(2n) {
-		margin-left: 0;
 	}
 
 	/* hide selected language flag and translations language name */

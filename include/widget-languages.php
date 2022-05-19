@@ -37,7 +37,7 @@ class PLL_Widget_Languages extends WP_Widget {
 	 */
 	public function widget( $args, $instance ) {
 		// Sets a unique id for dropdown.
-		$instance['dropdown'] = empty( $instance['dropdown'] ) ? 0 : $args['widget_id'];
+		$instance['dropdown'] = empty( $instance['dropdown'] ) ? 0 : $this->id;
 
 		if ( $list = pll_the_languages( array_merge( $instance, array( 'echo' => 0 ) ) ) ) {
 			$title = empty( $instance['title'] ) ? '' : $instance['title'];
@@ -67,7 +67,7 @@ class PLL_Widget_Languages extends WP_Widget {
 				$format = apply_filters( 'navigation_widgets_format', $format );
 
 				if ( 'html5' === $format ) {
-					echo '<nav role="navigation" aria-label="' . esc_attr( $aria_label ) . '">';
+					echo '<nav aria-label="' . esc_attr( $aria_label ) . '">';
 				}
 
 				echo "<ul>\n" . $list . "</ul>\n"; // phpcs:ignore WordPress.Security.EscapeOutput

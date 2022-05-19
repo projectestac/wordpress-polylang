@@ -26,6 +26,13 @@ class PLL_WPML_Config {
 	protected $xmls;
 
 	/**
+	 * The list of xml files.
+	 *
+	 * @var string[]
+	 */
+	protected $files;
+
+	/**
 	 * Constructor
 	 *
 	 * @since 1.0
@@ -41,7 +48,7 @@ class PLL_WPML_Config {
 	 *
 	 * @since 1.7
 	 *
-	 * @return object
+	 * @return PLL_WPML_Config
 	 */
 	public static function instance() {
 		if ( empty( self::$instance ) ) {
@@ -59,31 +66,19 @@ class PLL_WPML_Config {
 	 */
 	public function init() {
 		$this->xmls = array();
+		$files = $this->get_files();
 
-		// Plugins
-		// Don't forget sitewide active plugins thanks to Reactorshop http://wordpress.org/support/topic/polylang-and-yoast-seo-plugin/page/2?replies=38#post-4801829
-		$plugins = ( is_multisite() && $sitewide_plugins = get_site_option( 'active_sitewide_plugins' ) ) && is_array( $sitewide_plugins ) ? array_keys( $sitewide_plugins ) : array();
-		$plugins = array_merge( $plugins, get_option( 'active_plugins', array() ) );
+		if ( ! empty( $files ) ) {
 
-		foreach ( $plugins as $plugin ) {
-			if ( file_exists( $file = WP_PLUGIN_DIR . '/' . dirname( $plugin ) . '/wpml-config.xml' ) && false !== $xml = simplexml_load_file( $file ) ) {
-				$this->xmls[ dirname( $plugin ) ] = $xml;
+			// Read all files.
+			if ( extension_loaded( 'simplexml' ) ) {
+				foreach ( $files as $context => $file ) {
+					$xml = simplexml_load_file( $file );
+					if ( false !== $xml ) {
+						$this->xmls[ $context ] = $xml;
+					}
+				}
 			}
-		}
-
-		// Theme
-		if ( file_exists( $file = ( $template = get_template_directory() ) . '/wpml-config.xml' ) && false !== $xml = simplexml_load_file( $file ) ) {
-			$this->xmls[ get_template() ] = $xml;
-		}
-
-		// Child theme
-		if ( ( $stylesheet = get_stylesheet_directory() ) !== $template && file_exists( $file = $stylesheet . '/wpml-config.xml' ) && false !== $xml = simplexml_load_file( $file ) ) {
-			$this->xmls[ get_stylesheet() ] = $xml;
-		}
-
-		// Custom
-		if ( file_exists( $file = PLL_LOCAL_DIR . '/wpml-config.xml' ) && false !== $xml = simplexml_load_file( $file ) ) {
-			$this->xmls['Polylang'] = $xml;
 		}
 
 		if ( ! empty( $this->xmls ) ) {
@@ -115,6 +110,52 @@ class PLL_WPML_Config {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Get all wpml-config.xml files in plugins, theme, child theme and Polylang custom directory.
+	 *
+	 * @since 3.1
+	 *
+	 * @return array
+	 */
+	public function get_files() {
+
+		if ( ! empty( $this->files ) ) {
+			return $this->files;
+		}
+
+		$files = array();
+
+		// Plugins
+		// Don't forget sitewide active plugins thanks to Reactorshop http://wordpress.org/support/topic/polylang-and-yoast-seo-plugin/page/2?replies=38#post-4801829
+		$plugins = ( is_multisite() && $sitewide_plugins = get_site_option( 'active_sitewide_plugins' ) ) && is_array( $sitewide_plugins ) ? array_keys( $sitewide_plugins ) : array();
+		$plugins = array_merge( $plugins, get_option( 'active_plugins', array() ) );
+
+		foreach ( $plugins as $plugin ) {
+			if ( file_exists( $file = WP_PLUGIN_DIR . '/' . dirname( $plugin ) . '/wpml-config.xml' ) ) {
+				$files[ dirname( $plugin ) ] = $file;
+			}
+		}
+
+		// Theme
+		if ( file_exists( $file = ( $template = get_template_directory() ) . '/wpml-config.xml' ) ) {
+			$files[ get_template() ] = $file;
+		}
+
+		// Child theme
+		if ( ( $stylesheet = get_stylesheet_directory() ) !== $template && file_exists( $file = $stylesheet . '/wpml-config.xml' ) ) {
+			$files[ get_stylesheet() ] = $file;
+		}
+
+		// Custom
+		if ( file_exists( $file = PLL_LOCAL_DIR . '/wpml-config.xml' ) ) {
+			$files['Polylang'] = $file;
+		}
+
+		$this->files = $files;
+
+		return $files;
 	}
 
 	/**
@@ -226,9 +267,9 @@ class PLL_WPML_Config {
 	 *
 	 * @since 2.8
 	 *
-	 * @param string $context The group in which the strings will be registered.
-	 * @param string $name    Option name.
-	 * @param object $key     XML node.
+	 * @param string           $context The group in which the strings will be registered.
+	 * @param string           $name    Option name.
+	 * @param SimpleXMLElement $key     XML node.
 	 * @return void
 	 */
 	protected function register_or_translate_option( $context, $name, $key ) {
@@ -241,8 +282,8 @@ class PLL_WPML_Config {
 	 *
 	 * @since 2.9
 	 *
-	 * @param object $key XML node.
-	 * @param array  $arr Array of option keys to translate.
+	 * @param SimpleXMLElement $key XML node.
+	 * @param array            $arr Array of option keys to translate.
 	 * @return array
 	 */
 	protected function xml_to_array( $key, &$arr = array() ) {

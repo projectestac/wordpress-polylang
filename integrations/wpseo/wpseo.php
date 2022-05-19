@@ -17,6 +17,7 @@ class PLL_WPSEO {
 	 */
 	public function init() {
 		add_action( 'wp_loaded', array( $this, 'wpseo_translate_options' ) );
+		add_filter( 'wpseo_dynamic_permalinks_enabled', '__return_true', 999 );
 
 		if ( PLL() instanceof PLL_Frontend ) {
 			// Filters sitemap queries to remove inactive language or to get
@@ -38,17 +39,18 @@ class PLL_WPSEO {
 			}
 
 			add_filter( 'pll_home_url_white_list', array( $this, 'wpseo_home_url_white_list' ) );
-			if ( version_compare( WPSEO_VERSION, '14.0', '<' ) ) {
-				add_action( 'wpseo_opengraph', array( $this, 'wpseo_ogp' ), 2 );
-			} else {
-				add_filter( 'wpseo_frontend_presenters', array( $this, 'wpseo_frontend_presenters' ) );
-			}
+			add_filter( 'wpseo_frontend_presenters', array( $this, 'wpseo_frontend_presenters' ) );
 			add_filter( 'wpseo_canonical', array( $this, 'wpseo_canonical' ) );
 			add_filter( 'wpseo_frontend_presentation', array( $this, 'frontend_presentation' ) );
 			add_filter( 'wpseo_breadcrumb_indexables', array( $this, 'breadcrumb_indexables' ) );
 		} else {
-			add_filter( 'pll_copy_post_metas', array( $this, 'copy_post_metas' ), 10, 2 );
+			add_filter( 'pll_copy_post_metas', array( $this, 'copy_post_metas' ), 10, 4 );
 			add_filter( 'pll_translate_post_meta', array( $this, 'translate_post_meta' ), 10, 3 );
+
+			// Yoast SEO adds the columns hooks only for the 'inline-save' action. We need them for 'pll_update_post_rows' too.
+			if ( wp_doing_ajax() && isset( $_POST['action'] ) && 'pll_update_post_rows' === $_POST['action'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+				$GLOBALS['wpseo_meta_columns'] = new WPSEO_Meta_Columns();
+			}
 		}
 	}
 
@@ -99,7 +101,7 @@ class PLL_WPSEO {
 	 */
 	public function wpseo_home_url( $url, $path ) {
 		if ( empty( $path ) ) {
-			$path = ltrim( wp_parse_url( pll_get_requested_url(), PHP_URL_PATH ), '/' );
+			$path = ltrim( (string) wp_parse_url( pll_get_requested_url(), PHP_URL_PATH ), '/' );
 		}
 
 		if ( preg_match( '#sitemap(_index)?\.xml|([^\/]+?)-?sitemap([0-9]+)?\.xml|([a-z]+)?-?sitemap\.xsl#', $path ) ) {
@@ -286,39 +288,23 @@ class PLL_WPSEO {
 	}
 
 	/**
-	 * Get alternate language codes for Opengraph
+	 * Get alternate language codes for Opengraph.
 	 *
 	 * @since 2.7.3
 	 *
-	 * @return array
+	 * @return string[]
 	 */
 	protected function get_ogp_alternate_languages() {
 		$alternates = array();
 
 		foreach ( PLL()->model->get_languages_list() as $language ) {
-			if ( PLL()->curlang->slug !== $language->slug && PLL()->links->get_translation_url( $language ) && isset( $language->facebook ) ) {
+			if ( isset( PLL()->curlang ) && PLL()->curlang->slug !== $language->slug && PLL()->links->get_translation_url( $language ) && isset( $language->facebook ) ) {
 				$alternates[] = $language->facebook;
 			}
 		}
 
 		// There is a risk that 2 languages have the same Facebook locale. So let's make sure to output each locale only once.
 		return array_unique( $alternates );
-	}
-
-	/**
-	 * Adds opengraph support for translations
-	 *
-	 * @since 1.6
-	 */
-	public function wpseo_ogp() {
-		global $wpseo_og;
-
-		// WPSEO already deals with the locale
-		if ( did_action( 'pll_init' ) && method_exists( $wpseo_og, 'og_tag' ) ) {
-			foreach ( $this->get_ogp_alternate_languages() as $lang ) {
-				$wpseo_og->og_tag( 'og:locale:alternate', $lang );
-			}
-		}
 	}
 
 	/**
@@ -366,7 +352,6 @@ class PLL_WPSEO {
 	public function frontend_presentation( $presentation ) {
 		switch ( $presentation->model->object_type ) {
 			case 'home-page':
-				$presentation->model->permalink = pll_home_url();
 				$presentation->model->title = WPSEO_Options::get( 'title-home-wpseo' );
 				$presentation->model->description = WPSEO_Options::get( 'metadesc-home-wpseo' );
 				$presentation->model->open_graph_title = WPSEO_Options::get( 'og_frontpage_title' );
@@ -375,14 +360,9 @@ class PLL_WPSEO {
 
 			case 'post-type-archive':
 				if ( pll_is_translated_post_type( $presentation->model->object_sub_type ) ) {
-					$presentation->model->permalink = get_post_type_archive_link( $presentation->model->object_sub_type );
 					$presentation->model->title = WPSEO_Options::get( 'title-ptarchive-' . $presentation->model->object_sub_type );
 					$presentation->model->description = WPSEO_Options::get( 'metadesc-ptarchive-' . $presentation->model->object_sub_type );
 				}
-				break;
-
-			case 'user':
-				$presentation->model->permalink = get_author_posts_url( $presentation->model->object_id );
 				break;
 
 			case 'system-page':
@@ -401,29 +381,30 @@ class PLL_WPSEO {
 	}
 
 	/**
-	 * Fixes the breadcrumb links and strings stored in the indexable table since Yoast SEO 14.0
+	 * Fixes the breadcrumb links and strings stored in the indexable table since Yoast SEO 14.0.
+	 *
+	 * In version 17.0, the breadcrumb links do not honor the filter `wpseo_dynamic_permalinks_enabled`.
 	 *
 	 * @since 2.8.3
 	 *
 	 * @param array $indexables An array of Indexable objects.
-	 * @return object
+	 * @return array
 	 */
 	public function breadcrumb_indexables( $indexables ) {
 		foreach ( $indexables as &$indexable ) {
-			switch ( $indexable->object_type ) {
-				case 'home-page':
-					$indexable->permalink = pll_home_url();
-					$indexable->breadcrumb_title = pll__( WPSEO_Options::get( 'breadcrumbs-home' ) );
-					break;
-
-				case 'post-type-archive':
-					if ( pll_is_translated_post_type( $indexable->object_sub_type ) ) {
-						$indexable->permalink = get_post_type_archive_link( $indexable->object_sub_type );
-						$breadcrumb_title = WPSEO_Options::get( 'bctitle-ptarchive-' . $indexable->object_sub_type );
-						$breadcrumb_title = $breadcrumb_title ? $breadcrumb_title : $indexable->breadcrumb_title; // The option may be empty.
-						$indexable->breadcrumb_title = pll__( $breadcrumb_title );
-					}
-					break;
+			if ( 'home-page' === $indexable->object_type || ( 'post' === $indexable->object_type && 'page' === $indexable->object_sub_type && get_option( 'page_on_front' ) === $indexable->object_id ) ) {
+				// Handles both when the front page displays the list of posts or a static page.
+				$indexable->permalink = pll_home_url();
+				$indexable->breadcrumb_title = pll__( WPSEO_Options::get( 'breadcrumbs-home' ) );
+			} elseif ( 'post' === $indexable->object_type && 'page' === $indexable->object_sub_type && get_option( 'page_for_posts' ) === $indexable->object_id ) {
+				$indexable->permalink = get_permalink( $indexable->object_id );
+			} elseif ( 'post-type-archive' === $indexable->object_type && pll_is_translated_post_type( $indexable->object_sub_type ) ) {
+				$indexable->permalink = get_post_type_archive_link( $indexable->object_sub_type );
+				$breadcrumb_title = WPSEO_Options::get( 'bctitle-ptarchive-' . $indexable->object_sub_type );
+				$breadcrumb_title = $breadcrumb_title ? $breadcrumb_title : $indexable->breadcrumb_title; // The option may be empty.
+				$indexable->breadcrumb_title = pll__( $breadcrumb_title );
+			} elseif ( 'term' === $indexable->object_type && pll_is_translated_taxonomy( $indexable->object_sub_type ) ) {
+				$indexable->permalink = get_term_link( $indexable->object_id );
 			}
 		}
 
@@ -437,9 +418,11 @@ class PLL_WPSEO {
 	 *
 	 * @param string[] $keys List of custom fields names.
 	 * @param bool     $sync True if it is synchronization, false if it is a copy.
+	 * @param int      $from Id of the post from which we copy informations.
+	 * @param int      $to   Id of the post to which we paste informations.
 	 * @return array
 	 */
-	public function copy_post_metas( $keys, $sync ) {
+	public function copy_post_metas( $keys, $sync, $from, $to ) {
 		if ( ! $sync ) {
 			// Text requiring translation.
 			$keys[] = '_yoast_wpseo_title';
@@ -467,6 +450,10 @@ class PLL_WPSEO {
 			)
 		);
 
+		$sync_taxonomies = PLL()->sync->taxonomies->get_taxonomies_to_copy( $sync, $from, $to );
+
+		$taxonomies = array_intersect( $taxonomies, $sync_taxonomies );
+
 		foreach ( $taxonomies as $taxonomy ) {
 			$keys[] = '_yoast_wpseo_primary_' . $taxonomy;
 		}
@@ -485,9 +472,15 @@ class PLL_WPSEO {
 	 * @return int
 	 */
 	public function translate_post_meta( $value, $key, $lang ) {
-		if ( false !== strpos( $key, '_yoast_wpseo_primary_' ) ) {
-			$value = pll_get_term( $value, $lang );
+		if ( 0 !== strpos( $key, '_yoast_wpseo_primary_' ) ) {
+			return $value;
 		}
-		return $value;
+
+		$taxonomy = str_replace( '_yoast_wpseo_primary_', '', $key );
+		if ( ! PLL()->model->is_translated_taxonomy( $taxonomy ) ) {
+			return $value;
+		}
+
+		return pll_get_term( $value, $lang );
 	}
 }

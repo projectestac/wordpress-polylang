@@ -1,6 +1,7 @@
 /******/ "use strict";
+var __webpack_exports__ = {};
 
-;// CONCATENATED MODULE: ./js/lib/confirmation-modal.js
+;// CONCATENATED MODULE: ./js/src/lib/confirmation-modal.js
 /**
  * @package Polylang
  */
@@ -32,7 +33,7 @@ const initializeConfimationModal = () => {
 				switch ( what ) { // phpcs:ignore PEAR.Functions.FunctionCallSignature.Indent
 					case 'yes':
 						// Confirm the new language.
-						languagesList.data( 'old-value', languagesList.children( ':selected' )[0].value );
+						languagesList.data( 'old-value', languagesList.children( ':selected' ).first().val() );
 						confirm();
 						break;
 					case 'no':
@@ -98,10 +99,10 @@ const initializeConfimationModal = () => {
 
 const initializeLanguageOldValue = () => {
 	// Keep the old language value to be able to compare to the new one and revert to it if necessary.
-	languagesList.attr( 'data-old-value', languagesList.children( ':selected' )[0].value );
+	languagesList.attr( 'data-old-value', languagesList.children( ':selected' ).first().val() );
 };
 
-;// CONCATENATED MODULE: ./js/block-editor.js
+;// CONCATENATED MODULE: ./js/src/block-editor.js
 /**
  * @package Polylang
  */
@@ -208,7 +209,8 @@ jQuery(
 							ajaxurl,
 							data,
 							function( response ) {
-								var res = wpAjax.parseAjaxResponse( response, 'ajax-response' );
+								// Target a non existing WP HTML id to avoid a conflict with WP ajax requests.
+								var res = wpAjax.parseAjaxResponse( response, 'pll-ajax-response' );
 								$.each(
 									res.responses,
 									function() {

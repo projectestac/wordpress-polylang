@@ -43,9 +43,12 @@ class PLL_Admin_Site_Health {
 		// Information tab.
 		add_filter( 'debug_information', array( $this, 'info_options' ), 15 );
 		add_filter( 'debug_information', array( $this, 'info_languages' ), 15 );
+		add_filter( 'debug_information', array( $this, 'info' ), 15 );
 
 		// Tests Tab.
 		add_filter( 'site_status_tests', array( $this, 'status_tests' ) );
+		add_filter( 'site_status_test_php_modules', array( $this, 'site_status_test_php_modules' ) ); // Require simplexml in Site health.
+
 	}
 
 	/**
@@ -82,18 +85,23 @@ class PLL_Admin_Site_Health {
 	}
 
 	/**
-	 * Formats an array with language as keys to display in options information.
+	 * Formats an array to display in options information.
 	 *
 	 * @since 2.8
 	 *
-	 * @param array $array An array with language as keys.
+	 * @param array $array An array of formatted data.
 	 * @return string
 	 */
-	protected function format_array_with_languages( $array ) {
+	protected function format_array( $array ) {
 		array_walk(
 			$array,
 			function ( &$value, $key ) {
-				$value = "$key => $value";
+				if ( is_array( $value ) ) {
+					$ids = implode( ' , ', $value );
+					$value = "$key => $ids";
+				} else {
+					$value = "$key => $value";
+				}
 			}
 		);
 
@@ -137,7 +145,7 @@ class PLL_Admin_Site_Health {
 						break;
 					case 'domains':
 						$fields[ $key ]['label'] = $key;
-						$fields[ $key ]['value'] = $this->format_array_with_languages( $value );
+						$fields[ $key ]['value'] = $this->format_array( $value );
 						break;
 					case 'nav_menus':
 						$current_theme = get_stylesheet();
@@ -145,7 +153,7 @@ class PLL_Admin_Site_Health {
 							foreach ( $value[ $current_theme ] as $location => $lang ) {
 								/* translators: placeholder is the menu location name */
 								$fields[ $location ]['label'] = sprintf( 'menu: %s', $location );
-								$fields[ $location ]['value'] = $this->format_array_with_languages( $lang );
+								$fields[ $location ]['value'] = $this->format_array( $lang );
 							}
 						}
 						break;
@@ -165,7 +173,7 @@ class PLL_Admin_Site_Health {
 
 		$debug_info['pll_options'] = array(
 			/* translators: placeholder is the plugin name */
-			'label'  => sprintf( esc_html__( '%s Options', 'polylang' ), POLYLANG ),
+			'label'  => sprintf( __( '%s options', 'polylang' ), POLYLANG ),
 			'fields' => $fields,
 		);
 
@@ -203,7 +211,7 @@ class PLL_Admin_Site_Health {
 
 			$debug_info[ 'pll_language_' . $language->slug ] = array(
 				/* translators: placeholder is the language name */
-				'label'  => sprintf( esc_html__( 'Language: %s', 'polylang' ), esc_html( $language->name ) ),
+				'label'  => sprintf( __( 'Language: %s', 'polylang' ), $language->name ),
 				/* translators: placeholder is the flag image */
 				'description' => sprintf( esc_html__( 'Flag used in the language switcher: %s', 'polylang' ), $this->get_flag( $language ) ),
 				'fields' => $fields,
@@ -276,5 +284,123 @@ class PLL_Admin_Site_Health {
 			$result['description'] = sprintf( '<p>%s</p>', $message );
 		}
 		return $result;
+	}
+
+	/**
+	 * Add Polylang Warnings to Site Health Informations tab.
+	 *
+	 * @since 3.1
+	 *
+	 * @param array $debug_info The debug information to be added to the core information page.
+	 * @return array
+	 */
+	public function info( $debug_info ) {
+		$fields = array();
+
+		// Add Post Types without languages.
+		$posts_no_lang = $this->get_post_ids_without_lang();
+
+		if ( ! empty( $posts_no_lang ) ) {
+			$fields['post-no-lang']['label'] = __( 'Posts without language', 'polylang' );
+			$fields['post-no-lang']['value'] = $this->format_array( $posts_no_lang );
+		}
+
+		$terms_no_lang = $this->get_term_ids_without_lang();
+
+		if ( ! empty( $terms_no_lang ) ) {
+			$fields['term-no-lang']['label'] = __( 'Terms without language', 'polylang' );
+			$fields['term-no-lang']['value'] = $this->format_array( $terms_no_lang );
+		}
+
+		// Add WPML files.
+		$wpml_files = PLL_WPML_Config::instance()->get_files();
+		if ( ! empty( $wpml_files ) ) {
+			$fields['wpml']['label'] = 'wpml-config.xml files';
+			$fields['wpml']['value'] = $wpml_files;
+
+			if ( ! extension_loaded( 'simplexml' ) ) {
+				$fields['simplexml']['label'] = __( 'PHP SimpleXML extension', 'polylang' );
+				$fields['simplexml']['value'] = __( 'Not loaded. Contact your host provider.', 'polylang' );
+			}
+		}
+
+		// Create the section.
+		if ( ! empty( $fields ) ) {
+			$debug_info['pll_warnings'] = array(
+				/* translators: placeholder is the plugin name */
+				'label'  => sprintf( __( '%s information', 'polylang' ), POLYLANG ),
+				'fields' => $fields,
+			);
+		}
+
+		return $debug_info;
+	}
+
+	/**
+	 * Get an array with post_type as key and post ids as value.
+	 *
+	 * @since 3.1
+	 *
+	 * @param int $limit Max number of posts to show per post type.
+	 * @return int[][] Array containing an array of post ids.
+	 */
+	public function get_post_ids_without_lang( $limit = 5 ) {
+		$posts = array();
+
+		foreach ( $this->model->get_translated_post_types() as $post_type ) {
+			$post_ids_with_no_language = $this->model->get_posts_with_no_lang( $post_type, $limit );
+
+			if ( ! empty( $post_ids_with_no_language ) ) {
+				foreach ( $post_ids_with_no_language as $id ) {
+					$posts[ $post_type ][] = $id;
+				}
+			}
+		}
+
+		return $posts;
+	}
+
+	/**
+	 * Get an array with taxonomy as key and term ids as value.
+	 *
+	 * @since 3.1
+	 *
+	 * @param int $limit Max number of terms to show per post type.
+	 * @return int[][] Array containing an array of term ids.
+	 */
+	public function get_term_ids_without_lang( $limit = 5 ) {
+		$terms = array();
+
+		foreach ( $this->model->get_translated_taxonomies() as $taxonomy ) {
+			$term_ids_with_no_language = $this->model->get_terms_with_no_lang( $taxonomy, $limit );
+
+			if ( ! empty( $term_ids_with_no_language ) ) {
+				foreach ( $term_ids_with_no_language as $id ) {
+					$terms[ $taxonomy ][] = $id;
+				}
+			}
+		}
+
+		return $terms;
+	}
+
+	/**
+	 * Requires the simplexml PHP module when a wpml-config.xml has been found.
+	 *
+	 * @since 3.1
+	 * @since 3.2 Moved from PLL_WPML_Config
+	 *
+	 * @param array $modules An associative array of modules to test for.
+	 * @return array
+	 */
+	public function site_status_test_php_modules( $modules ) {
+		$files = PLL_WPML_Config::instance()->get_files();
+		if ( ! empty( $files ) ) {
+			$modules['simplexml'] = array(
+				'extension' => 'simplexml',
+				'required'  => true,
+			);
+		}
+		return $modules;
 	}
 }

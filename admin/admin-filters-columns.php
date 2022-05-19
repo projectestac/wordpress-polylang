@@ -247,6 +247,13 @@ class PLL_Admin_Filters_Columns {
 	 * @return string[] modified List of columns.
 	 */
 	public function add_term_column( $columns ) {
+		$screen = get_current_screen();
+
+		// Avoid displaying languages in screen options when editing a term.
+		if ( $screen instanceof WP_Screen && 'term' === $screen->base ) {
+			return $columns;
+		}
+
 		return $this->add_column( $columns, 'posts' );
 	}
 
@@ -294,12 +301,7 @@ class PLL_Admin_Filters_Columns {
 		}
 
 		if ( $column == $this->get_first_language_column() ) {
-			$out = sprintf( '<div class="hidden" id="lang_%d">%s</div>', intval( $term_id ), esc_html( $lang->slug ) );
-
-			// Identify the default categories to disable the language dropdown in js
-			if ( in_array( get_option( 'default_category' ), $this->model->term->get_translations( $term_id ) ) ) {
-				$out .= sprintf( '<div class="hidden" id="default_cat_%1$d">%1$d</div>', intval( $term_id ) );
-			}
+			$out .= sprintf( '<div class="hidden" id="lang_%d">%s</div>', intval( $term_id ), esc_html( $lang->slug ) );
 		}
 
 		// Link to edit term ( or a translation )

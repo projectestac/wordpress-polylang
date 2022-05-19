@@ -52,11 +52,6 @@ class PLL_Admin_Model extends PLL_Model {
 			// If this is the first language created, set it as default language
 			$this->options['default_lang'] = $args['slug'];
 			update_option( 'polylang', $this->options );
-
-			// And assign default language to default category
-			$this->term->set_language( (int) get_option( 'default_category' ), (int) $r['term_id'] );
-		} elseif ( empty( $args['no_default_cat'] ) ) {
-			$this->create_default_category( $args['slug'] );
 		}
 
 		// Init a mo_id for this language
@@ -243,13 +238,25 @@ class PLL_Admin_Model extends PLL_Model {
 		}
 
 		/**
-		 * Fires when a language is updated.
+		 * Fires after a language is updated.
 		 *
 		 * @since 1.9
+		 * @since 3.2 Added $lang parameter.
 		 *
-		 * @param array $args Arguments used to modify the language. @see PLL_Admin_Model::update_language().
+		 * @param array<mixed> $args {
+		 *   Arguments used to modify the language. @see PLL_Admin_Model::update_language().
+		 *
+		 *   @type string $name           Language name (used only for display).
+		 *   @type string $slug           Language code (ideally 2-letters ISO 639-1 language code).
+		 *   @type string $locale         WordPress locale.
+		 *   @type int    $rtl            1 if rtl language, 0 otherwise.
+		 *   @type int    $term_group     Language order when displayed.
+		 *   @type string $no_default_cat Optional, if set, no default category has been created for this language.
+		 *   @type string $flag           Optional, country code, @see flags.php.
+		 * }
+		 * @param PLL_Language $lang Previous value of the language beeing edited.
 		 */
-		do_action( 'pll_update_language', $args );
+		do_action( 'pll_update_language', $args, $lang );
 
 		$this->clean_languages_cache();
 		flush_rewrite_rules(); // Refresh rewrite rules
@@ -437,77 +444,6 @@ class PLL_Admin_Model extends PLL_Model {
 	}
 
 	/**
-	 * Returns untranslated posts and terms ids ( used in settings ).
-	 *
-	 * @since 0.9
-	 * @since 2.2.6 Add the $limit argument.
-	 *
-	 * @param int $limit Max number of posts or terms to return. Defaults to -1 (no limit).
-	 * @return array {
-	 *     Objects without language.
-	 *
-	 *     @type int[] $posts Array of post ids.
-	 *     @type int[] $terms Array of term ids.
-	 * }
-	 */
-	public function get_objects_with_no_lang( $limit = -1 ) {
-		global $wpdb;
-
-		/**
-		 * Filters the max number of posts or terms to return when searching objects with no language.
-		 * This filter can be used to decrease the memory usage in case the number of objects
-		 * without language is too big. Using a negative value is equivalent to have no limit.
-		 *
-		 * @since 2.2.6
-		 *
-		 * @param int $limit Max number of posts or terms to retrieve from the database.
-		 */
-		$limit = (int) apply_filters( 'get_objects_with_no_lang_limit', $limit );
-
-		$posts = get_posts(
-			array(
-				'numberposts' => $limit,
-				'nopaging'    => $limit <= 0,
-				'post_type'   => $this->get_translated_post_types(),
-				'post_status' => 'any',
-				'fields'      => 'ids',
-				'tax_query'   => array(
-					array(
-						'taxonomy' => 'language',
-						'terms'    => $this->get_languages_list( array( 'fields' => 'term_id' ) ),
-						'operator' => 'NOT IN',
-					),
-				),
-			)
-		);
-
-		// PHPCS:disable WordPress.DB.PreparedSQL
-		$terms = $wpdb->get_col(
-			sprintf(
-				"SELECT {$wpdb->term_taxonomy}.term_id FROM {$wpdb->term_taxonomy}
-				WHERE taxonomy IN ('%s')
-				AND {$wpdb->term_taxonomy}.term_id NOT IN (
-					SELECT object_id FROM {$wpdb->term_relationships} WHERE term_taxonomy_id IN (%s)
-				)
-				%s",
-				implode( "','", array_map( 'esc_sql', $this->get_translated_taxonomies() ) ),
-				implode( ',', array_map( 'intval', $this->get_languages_list( array( 'fields' => 'tl_term_taxonomy_id' ) ) ) ),
-				$limit > 0 ? "LIMIT {$limit}" : ''
-			)
-		);
-		// PHPCS:enable
-
-		/**
-		 * Filters the list of untranslated posts ids and terms ids
-		 *
-		 * @since 0.9
-		 *
-		 * @param array|false $objects false if no ids found, list of post and/or term ids otherwise.
-		 */
-		return apply_filters( 'pll_get_objects_with_no_lang', empty( $posts ) && empty( $terms ) ? false : array( 'posts' => $posts, 'terms' => $terms ) );
-	}
-
-	/**
 	 * Updates the translations when a language slug has been modified in settings
 	 * or deletes them when a language is removed.
 	 *
@@ -530,6 +466,25 @@ class PLL_Admin_Model extends PLL_Model {
 			foreach ( $terms as $term ) {
 				$term_ids[ $term->taxonomy ][] = $term->term_id;
 				$tr = maybe_unserialize( $term->description );
+
+				/**
+				 * Filters the unserialized translation group description before it is
+				 * updated when a language is deleted or a language slug is changed.
+				 *
+				 * @since 3.2
+				 *
+				 * @param array<int|array<string>> $tr {
+				 *     List of translations with lang codes as array keys and IDs as array values.
+				 *     Also in this array:
+				 *
+				 *     @type array<string> $sync List of synchronized translations with lang codes as array keys and array values.
+				 * }
+				 * @param string                   $old_slug The old language slug.
+				 * @param string                   $new_slug The new language slug.
+				 * @param WP_Term                  $term     The term containing the post or term translation group.
+				 */
+				$tr = apply_filters( 'update_translation_group', $tr, $old_slug, $new_slug, $term );
+
 				if ( ! empty( $tr[ $old_slug ] ) ) {
 					if ( $new_slug ) {
 						$tr[ $new_slug ] = $tr[ $old_slug ]; // Suppress this for delete
@@ -606,11 +561,14 @@ class PLL_Admin_Model extends PLL_Model {
 			set_theme_mod( 'nav_menu_locations', $menus );
 		}
 
-		// The default category should be in the default language
-		$default_cats = $this->term->get_translations( get_option( 'default_category' ) );
-		if ( isset( $default_cats[ $slug ] ) ) {
-			update_option( 'default_category', $default_cats[ $slug ] );
-		}
+		/**
+		 * Fires when a default language is updated.
+		 *
+		 * @since 3.1
+		 *
+		 * @param string $slug Slug.
+		 */
+		do_action( 'pll_update_default_lang', $slug );
 
 		// Update options
 		$this->options['default_lang'] = $slug;

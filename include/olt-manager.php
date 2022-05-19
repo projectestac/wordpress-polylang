@@ -74,7 +74,7 @@ class PLL_OLT_Manager {
 	 *
 	 * @since 1.7
 	 *
-	 * @return object
+	 * @return PLL_OLT_Manager
 	 */
 	public static function instance() {
 		if ( empty( self::$instance ) ) {
@@ -227,7 +227,7 @@ class PLL_OLT_Manager {
 		// Use static array to avoid translating several times the same ( default ) labels
 		static $translated = array();
 
-		foreach ( $type->labels as $key => $label ) {
+		foreach ( (array) $type->labels as $key => $label ) {
 			if ( is_string( $label ) && isset( $this->labels[ $label ] ) ) {
 				if ( empty( $translated[ $label ] ) ) {
 					// PHPCS:disable WordPress.WP.I18n

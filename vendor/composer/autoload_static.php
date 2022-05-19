@@ -4,7 +4,7 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac
+class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
 {
     public static $classMap = array (
         'PLL_AS3CF' => __DIR__ . '/../..' . '/integrations/wp-offload-media/as3cf.php',
@@ -15,6 +15,7 @@ class ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac
         'PLL_Admin_Base' => __DIR__ . '/../..' . '/admin/admin-base.php',
         'PLL_Admin_Block_Editor' => __DIR__ . '/../..' . '/admin/admin-block-editor.php',
         'PLL_Admin_Classic_Editor' => __DIR__ . '/../..' . '/admin/admin-classic-editor.php',
+        'PLL_Admin_Default_Term' => __DIR__ . '/../..' . '/admin/admin-default-term.php',
         'PLL_Admin_Filters' => __DIR__ . '/../..' . '/admin/admin-filters.php',
         'PLL_Admin_Filters_Columns' => __DIR__ . '/../..' . '/admin/admin-filters-columns.php',
         'PLL_Admin_Filters_Media' => __DIR__ . '/../..' . '/admin/admin-filters-media.php',
@@ -32,6 +33,7 @@ class ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac
         'PLL_Admin_Sync' => __DIR__ . '/../..' . '/modules/sync/admin-sync.php',
         'PLL_Aqua_Resizer' => __DIR__ . '/../..' . '/integrations/aqua-resizer/aqua-resizer.php',
         'PLL_Base' => __DIR__ . '/../..' . '/include/base.php',
+        'PLL_Block_Editor_Filter_Preload_Paths' => __DIR__ . '/../..' . '/admin/block-editor-filter-preload-paths.php',
         'PLL_CRUD_Posts' => __DIR__ . '/../..' . '/include/crud-posts.php',
         'PLL_CRUD_Terms' => __DIR__ . '/../..' . '/include/crud-terms.php',
         'PLL_Cache' => __DIR__ . '/../..' . '/include/cache.php',
@@ -42,6 +44,7 @@ class ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac
         'PLL_Choose_Lang_Domain' => __DIR__ . '/../..' . '/frontend/choose-lang-domain.php',
         'PLL_Choose_Lang_Url' => __DIR__ . '/../..' . '/frontend/choose-lang-url.php',
         'PLL_Cookie' => __DIR__ . '/../..' . '/include/cookie.php',
+        'PLL_Db_Tools' => __DIR__ . '/../..' . '/include/db-tools.php',
         'PLL_Domain_Mapping' => __DIR__ . '/../..' . '/integrations/domain-mapping/domain-mapping.php',
         'PLL_Duplicate_Post' => __DIR__ . '/../..' . '/integrations/duplicate-post/duplicate-post.php',
         'PLL_Featured_Content' => __DIR__ . '/../..' . '/integrations/jetpack/featured-content.php',
@@ -54,6 +57,7 @@ class ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac
         'PLL_Frontend_Filters' => __DIR__ . '/../..' . '/frontend/frontend-filters.php',
         'PLL_Frontend_Filters_Links' => __DIR__ . '/../..' . '/frontend/frontend-filters-links.php',
         'PLL_Frontend_Filters_Search' => __DIR__ . '/../..' . '/frontend/frontend-filters-search.php',
+        'PLL_Frontend_Filters_Widgets' => __DIR__ . '/../..' . '/frontend/frontend-filters-widgets.php',
         'PLL_Frontend_Links' => __DIR__ . '/../..' . '/frontend/frontend-links.php',
         'PLL_Frontend_Nav_Menu' => __DIR__ . '/../..' . '/frontend/frontend-nav-menu.php',
         'PLL_Frontend_Static_Pages' => __DIR__ . '/../..' . '/frontend/frontend-static-pages.php',
@@ -87,11 +91,10 @@ class ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac
         'PLL_Settings_Licenses' => __DIR__ . '/../..' . '/settings/settings-licenses.php',
         'PLL_Settings_Media' => __DIR__ . '/../..' . '/settings/settings-media.php',
         'PLL_Settings_Module' => __DIR__ . '/../..' . '/settings/settings-module.php',
-        'PLL_Settings_Share_Slug' => __DIR__ . '/../..' . '/modules/share-slug/settings-share-slug.php',
+        'PLL_Settings_Preview_Share_Slug' => __DIR__ . '/../..' . '/modules/share-slug/settings-preview-share-slug.php',
+        'PLL_Settings_Preview_Translate_Slugs' => __DIR__ . '/../..' . '/modules/translate-slugs/settings-preview-translate-slugs.php',
         'PLL_Settings_Sync' => __DIR__ . '/../..' . '/modules/sync/settings-sync.php',
-        'PLL_Settings_Translate_Slugs' => __DIR__ . '/../..' . '/modules/translate-slugs/settings-translate-slugs.php',
         'PLL_Settings_Url' => __DIR__ . '/../..' . '/settings/settings-url.php',
-        'PLL_Settings_WPML' => __DIR__ . '/../..' . '/modules/wpml/settings-wpml.php',
         'PLL_Sitemaps' => __DIR__ . '/../..' . '/modules/sitemaps/sitemaps.php',
         'PLL_Sitemaps_Domain' => __DIR__ . '/../..' . '/modules/sitemaps/sitemaps-domain.php',
         'PLL_Static_Pages' => __DIR__ . '/../..' . '/include/static-pages.php',
@@ -131,7 +134,7 @@ class ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit5ee0dd77da0f415ad9a86c8a505132ac::$classMap;
+            $loader->classMap = ComposerStaticInit57e007bdf76a1fe336cb43b59389545b::$classMap;
 
         }, null, ClassLoader::class);
     }

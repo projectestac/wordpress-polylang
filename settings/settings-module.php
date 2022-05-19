@@ -81,7 +81,7 @@ class PLL_Settings_Module {
 	/**
 	 * Stores html form when provided by a child class.
 	 *
-	 * @var bool|string
+	 * @var string|false
 	 */
 	protected $form = false;
 
@@ -251,9 +251,10 @@ class PLL_Settings_Module {
 			// Don't use flush_rewrite_rules as we don't have the right links model and permastruct
 			delete_option( 'rewrite_rules' );
 
+
 			ob_start();
 
-			if ( ! get_settings_errors() ) {
+			if ( empty( get_settings_errors() ) ) {
 				// Send update message
 				add_settings_error( 'general', 'settings_updated', __( 'Settings saved.', 'polylang' ), 'updated' );
 				settings_errors();
