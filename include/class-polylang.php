@@ -13,7 +13,7 @@ if ( ! defined( 'PLL_LOCAL_DIR' ) ) {
 }
 
 // Includes local config file if exists
-if ( file_exists( PLL_LOCAL_DIR . '/pll-config.php' ) ) {
+if ( is_readable( PLL_LOCAL_DIR . '/pll-config.php' ) ) {
 	include_once PLL_LOCAL_DIR . '/pll-config.php';
 }
 
@@ -99,7 +99,7 @@ class Polylang {
 		$home_path_regex = sprintf( '|^%s|i', preg_quote( $home_path, '|' ) );
 
 		$req_uri = trim( (string) wp_parse_url( pll_get_requested_url(), PHP_URL_PATH ), '/' );
-		$req_uri = preg_replace( $home_path_regex, '', $req_uri );
+		$req_uri = (string) preg_replace( $home_path_regex, '', $req_uri );
 		$req_uri = trim( $req_uri, '/' );
 		$req_uri = str_replace( 'index.php', '', $req_uri );
 		$req_uri = trim( $req_uri, '/' );
@@ -180,9 +180,6 @@ class Polylang {
 			$options = PLL_Install::get_default_options();
 		}
 
-		// Make sure that this filter is *always* added before PLL_Model::get_languages_list() is called for the first time
-		add_filter( 'pll_languages_list', array( 'PLL_Static_Pages', 'pll_languages_list' ), 2, 2 ); // Before PLL_Links_Model
-
 		/**
 		 * Filter the model class to use
 		 * /!\ this filter is fired *before* the $polylang object is available
@@ -192,10 +189,10 @@ class Polylang {
 		 * @param string $class either PLL_Model or PLL_Admin_Model
 		 */
 		$class = apply_filters( 'pll_model', PLL_SETTINGS || self::is_wizard() ? 'PLL_Admin_Model' : 'PLL_Model' );
+		/** @var PLL_Model $model */
 		$model = new $class( $options );
-		$links_model = $model->get_links_model();
 
-		if ( ! $model->get_languages_list() ) {
+		if ( ! $model->has_languages() ) {
 			/**
 			 * Fires when no language has been defined yet
 			 * Used to load overridden textdomains
@@ -213,7 +210,7 @@ class Polylang {
 			$class = 'PLL_Admin';
 		} elseif ( self::is_rest_request() ) {
 			$class = 'PLL_REST_Request';
-		} elseif ( $model->get_languages_list() ) {
+		} elseif ( $model->has_languages() ) {
 			$class = 'PLL_Frontend';
 		}
 
@@ -227,7 +224,22 @@ class Polylang {
 		$class = apply_filters( 'pll_context', $class );
 
 		if ( ! empty( $class ) ) {
-			$polylang = new $class( $links_model );
+			$links_model = $model->get_links_model();
+			$polylang    = new $class( $links_model );
+
+			/**
+			 * Fires after Polylang's model init.
+			 * This is the best place to register a custom table (see `PLL_Model`'s constructor).
+			 * /!\ This hook is fired *before* the $polylang object is available.
+			 * /!\ The languages are also not available yet.
+			 *
+			 * @since 3.4
+			 *
+			 * @param PLL_Model $model Polylang model.
+			 */
+			do_action( 'pll_model_init', $model );
+
+			$model->maybe_create_language_terms();
 
 			/**
 			 * Fires after the $polylang object is created and before the API is loaded

@@ -4,9 +4,10 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
+class ComposerStaticInit7dc73dfbbc007ce0d677088d041ad7d4
 {
     public static $classMap = array (
+        'Composer\\InstalledVersions' => __DIR__ . '/..' . '/composer/InstalledVersions.php',
         'PLL_AS3CF' => __DIR__ . '/../..' . '/integrations/wp-offload-media/as3cf.php',
         'PLL_Abstract_Sitemaps' => __DIR__ . '/../..' . '/modules/sitemaps/abstract-sitemaps.php',
         'PLL_Accept_Language' => __DIR__ . '/../..' . '/frontend/accept-language.php',
@@ -33,11 +34,11 @@ class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
         'PLL_Admin_Sync' => __DIR__ . '/../..' . '/modules/sync/admin-sync.php',
         'PLL_Aqua_Resizer' => __DIR__ . '/../..' . '/integrations/aqua-resizer/aqua-resizer.php',
         'PLL_Base' => __DIR__ . '/../..' . '/include/base.php',
-        'PLL_Block_Editor_Filter_Preload_Paths' => __DIR__ . '/../..' . '/admin/block-editor-filter-preload-paths.php',
         'PLL_CRUD_Posts' => __DIR__ . '/../..' . '/include/crud-posts.php',
         'PLL_CRUD_Terms' => __DIR__ . '/../..' . '/include/crud-terms.php',
         'PLL_Cache' => __DIR__ . '/../..' . '/include/cache.php',
         'PLL_Cache_Compat' => __DIR__ . '/../..' . '/integrations/cache/cache-compat.php',
+        'PLL_Canonical' => __DIR__ . '/../..' . '/frontend/canonical.php',
         'PLL_Cft' => __DIR__ . '/../..' . '/integrations/custom-field-template/cft.php',
         'PLL_Choose_Lang' => __DIR__ . '/../..' . '/frontend/choose-lang.php',
         'PLL_Choose_Lang_Content' => __DIR__ . '/../..' . '/frontend/choose-lang-content.php',
@@ -48,6 +49,7 @@ class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
         'PLL_Domain_Mapping' => __DIR__ . '/../..' . '/integrations/domain-mapping/domain-mapping.php',
         'PLL_Duplicate_Post' => __DIR__ . '/../..' . '/integrations/duplicate-post/duplicate-post.php',
         'PLL_Featured_Content' => __DIR__ . '/../..' . '/integrations/jetpack/featured-content.php',
+        'PLL_Filter_REST_Routes' => __DIR__ . '/../..' . '/include/filter-rest-routes.php',
         'PLL_Filters' => __DIR__ . '/../..' . '/include/filters.php',
         'PLL_Filters_Links' => __DIR__ . '/../..' . '/include/filters-links.php',
         'PLL_Filters_Sanitization' => __DIR__ . '/../..' . '/include/filters-sanitization.php',
@@ -66,8 +68,9 @@ class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
         'PLL_Integrations' => __DIR__ . '/../..' . '/integrations/integrations.php',
         'PLL_Jetpack' => __DIR__ . '/../..' . '/integrations/jetpack/jetpack.php',
         'PLL_Language' => __DIR__ . '/../..' . '/include/language.php',
+        'PLL_Language_Deprecated' => __DIR__ . '/../..' . '/include/language-deprecated.php',
+        'PLL_Language_Factory' => __DIR__ . '/../..' . '/include/language-factory.php',
         'PLL_License' => __DIR__ . '/../..' . '/include/license.php',
-        'PLL_Lingotek' => __DIR__ . '/../..' . '/modules/lingotek/lingotek.php',
         'PLL_Links' => __DIR__ . '/../..' . '/include/links.php',
         'PLL_Links_Abstract_Domain' => __DIR__ . '/../..' . '/include/links-abstract-domain.php',
         'PLL_Links_Default' => __DIR__ . '/../..' . '/include/links-default.php',
@@ -108,6 +111,10 @@ class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
         'PLL_Table_Languages' => __DIR__ . '/../..' . '/settings/table-languages.php',
         'PLL_Table_Settings' => __DIR__ . '/../..' . '/settings/table-settings.php',
         'PLL_Table_String' => __DIR__ . '/../..' . '/settings/table-string.php',
+        'PLL_Translatable_Object' => __DIR__ . '/../..' . '/include/translatable-object.php',
+        'PLL_Translatable_Object_With_Types_Interface' => __DIR__ . '/../..' . '/include/translatable-object-with-types-interface.php',
+        'PLL_Translatable_Object_With_Types_Trait' => __DIR__ . '/../..' . '/include/translatable-object-with-types-trait.php',
+        'PLL_Translatable_Objects' => __DIR__ . '/../..' . '/include/translatable-objects.php',
         'PLL_Translate_Option' => __DIR__ . '/../..' . '/include/translate-option.php',
         'PLL_Translated_Object' => __DIR__ . '/../..' . '/include/translated-object.php',
         'PLL_Translated_Post' => __DIR__ . '/../..' . '/include/translated-post.php',
@@ -121,6 +128,7 @@ class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
         'PLL_WPSEO_OGP' => __DIR__ . '/../..' . '/integrations/wpseo/wpseo-ogp.php',
         'PLL_WP_Import' => __DIR__ . '/../..' . '/integrations/wp-importer/wp-import.php',
         'PLL_WP_Sweep' => __DIR__ . '/../..' . '/integrations/wp-sweep/wp-sweep.php',
+        'PLL_Walker' => __DIR__ . '/../..' . '/include/walker.php',
         'PLL_Walker_Dropdown' => __DIR__ . '/../..' . '/include/walker-dropdown.php',
         'PLL_Walker_List' => __DIR__ . '/../..' . '/include/walker-list.php',
         'PLL_Widget_Calendar' => __DIR__ . '/../..' . '/include/widget-calendar.php',
@@ -134,7 +142,7 @@ class ComposerStaticInit57e007bdf76a1fe336cb43b59389545b
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->classMap = ComposerStaticInit57e007bdf76a1fe336cb43b59389545b::$classMap;
+            $loader->classMap = ComposerStaticInit7dc73dfbbc007ce0d677088d041ad7d4::$classMap;
 
         }, null, ClassLoader::class);
     }

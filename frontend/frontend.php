@@ -12,54 +12,54 @@ class PLL_Frontend extends PLL_Base {
 	/**
 	 * Current language.
 	 *
-	 * @var PLL_Language
+	 * @var PLL_Language|null
 	 */
 	public $curlang;
 
 	/**
-	 * @var PLL_Frontend_Auto_Translate
+	 * @var PLL_Frontend_Auto_Translate|null
 	 */
 	public $auto_translate;
 
 	/**
 	 * The class selecting the current language.
 	 *
-	 * @var PLL_Choose_Lang
+	 * @var PLL_Choose_Lang|null
 	 */
 	public $choose_lang;
 
 	/**
-	 * @var PLL_Frontend_Filters
+	 * @var PLL_Frontend_Filters|null
 	 */
 	public $filters;
 
 	/**
-	 * @var PLL_Frontend_Filters_Links
+	 * @var PLL_Frontend_Filters_Links|null
 	 */
 	public $filters_links;
 
 	/**
-	 * @var PLL_Frontend_Filters_Search
+	 * @var PLL_Frontend_Filters_Search|null
 	 */
 	public $filters_search;
 
 	/**
-	 * @var PLL_Frontend_Links
+	 * @var PLL_Frontend_Links|null
 	 */
 	public $links;
 
 	/**
-	 * @var PLL_Frontend_Nav_Menu
+	 * @var PLL_Frontend_Nav_Menu|null
 	 */
 	public $nav_menu;
 
 	/**
-	 * @var PLL_Frontend_Static_Pages
+	 * @var PLL_Frontend_Static_Pages|null
 	 */
 	public $static_pages;
 
 	/**
-	 * @var PLL_Frontend_Filters_Widgets
+	 * @var PLL_Frontend_Filters_Widgets|null
 	 */
 	public $filters_widgets;
 
@@ -87,6 +87,18 @@ class PLL_Frontend extends PLL_Base {
 		}
 
 		add_action( 'admin_bar_menu', array( $this, 'remove_customize_admin_bar' ), 41 ); // After WP_Admin_Bar::add_menus
+
+		/*
+		 * Static front page and page for posts.
+		 *
+		 * Early instantiated to be able to correctly initialize language properties.
+		 * Also loaded in customizer preview, directly reading the request as we act before WP.
+		 */
+		if ( 'page' === get_option( 'show_on_front' ) || ( isset( $_REQUEST['wp_customize'] ) && 'on' === $_REQUEST['wp_customize'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+			$this->static_pages = new PLL_Frontend_Static_Pages( $this );
+		}
+
+		$this->model->set_languages_ready();
 	}
 
 	/**
@@ -98,11 +110,6 @@ class PLL_Frontend extends PLL_Base {
 		parent::init();
 
 		$this->links = new PLL_Frontend_Links( $this );
-
-		// Static front page and page for posts
-		if ( 'page' === get_option( 'show_on_front' ) ) {
-			$this->static_pages = new PLL_Frontend_Static_Pages( $this );
-		}
 
 		// Setup the language chooser
 		$c = array( 'Content', 'Url', 'Url', 'Domain' );
@@ -127,6 +134,14 @@ class PLL_Frontend extends PLL_Base {
 		$this->filters = new PLL_Frontend_Filters( $this );
 		$this->filters_search = new PLL_Frontend_Filters_Search( $this );
 		$this->filters_widgets = new PLL_Frontend_Filters_Widgets( $this );
+
+		/*
+		 * Redirects to canonical url before WordPress redirect_canonical
+		 * but after Nextgen Gallery which hacks $_SERVER['REQUEST_URI'] !!!
+		 * and restores it in 'template_redirect' with priority 1.
+		 */
+		$this->canonical = new PLL_Canonical( $this );
+		add_action( 'template_redirect', array( $this->canonical, 'check_canonical_url' ), 4 );
 
 		// Auto translate for Ajax
 		if ( ( ! defined( 'PLL_AUTO_TRANSLATE' ) || PLL_AUTO_TRANSLATE ) && wp_doing_ajax() ) {
@@ -216,24 +231,32 @@ class PLL_Frontend extends PLL_Base {
 	 * @return void
 	 */
 	public function switch_blog( $new_blog_id, $prev_blog_id ) {
+		if ( (int) $new_blog_id === (int) $prev_blog_id ) {
+			// Do nothing if same blog.
+			return;
+		}
+
 		parent::switch_blog( $new_blog_id, $prev_blog_id );
 
 		// Need to check that some languages are defined when user is logged in, has several blogs, some without any languages.
-		if ( $this->is_active_on_new_blog( $new_blog_id, $prev_blog_id ) && did_action( 'pll_language_defined' ) && $this->model->get_languages_list() ) {
-			static $restore_curlang;
-			if ( empty( $restore_curlang ) ) {
-				$restore_curlang = $this->curlang->slug; // To always remember the current language through blogs.
-			}
-
-			$lang = $this->model->get_language( $restore_curlang );
-			$this->curlang = $lang ? $lang : $this->model->get_language( $this->options['default_lang'] );
-
-			if ( isset( $this->static_pages ) ) {
-				$this->static_pages->init();
-			}
-
-			$this->load_strings_translations();
+		if ( ! $this->is_active_on_current_site() || ! $this->model->has_languages() || ! did_action( 'pll_language_defined' ) ) {
+			return;
 		}
+
+		static $restore_curlang;
+
+		if ( empty( $restore_curlang ) ) {
+			$restore_curlang = $this->curlang->slug; // To always remember the current language through blogs.
+		}
+
+		$lang = $this->model->get_language( $restore_curlang );
+		$this->curlang = $lang ? $lang : $this->model->get_default_language();
+
+		if ( isset( $this->static_pages ) ) {
+			$this->static_pages->init();
+		}
+
+		$this->load_strings_translations();
 	}
 
 	/**
