@@ -84,13 +84,23 @@ function pll_get_requested_url() {
 		return set_url_scheme( esc_url_raw( wp_unslash( 'http://' . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'] ) ) );
 	}
 
+	/** @var string */
+	$home_url = get_option( 'home' );
+
 	/*
 	 * In WP CLI context, few developers define superglobals in wp-config.php
 	 * as proposed in https://make.wordpress.org/cli/handbook/common-issues/#php-notice-undefined-index-on-_server-superglobal
 	 * So let's return the unfiltered home url to avoid a bunch of notices.
 	 */
 	if ( defined( 'WP_CLI' ) && WP_CLI ) {
-		return get_option( 'home' );
+		return $home_url;
+	}
+
+	/*
+	 * When using system CRON instead of WP_CRON, the superglobals are likely undefined.
+	 */
+	if ( defined( 'DOING_CRON' ) && DOING_CRON ) {
+		return $home_url;
 	}
 
 	if ( WP_DEBUG ) {
@@ -190,4 +200,38 @@ function pll_is_plugin_active( string $plugin_name ) {
 	$plugins              = array_merge( $sitewide_plugins, $current_site_plugins );
 
 	return in_array( $plugin_name, $plugins );
+}
+
+/**
+ * Prepares and registers notices.
+ *
+ * Wraps `add_settings_error()` to make its use more consistent.
+ *
+ * @since 3.6
+ *
+ * @param WP_Error $error Error object.
+ * @return void
+ */
+function pll_add_notice( WP_Error $error ) {
+	if ( ! $error->has_errors() ) {
+		return;
+	}
+
+	foreach ( $error->get_error_codes() as $error_code ) {
+		// Extract the "error" type.
+		$data = $error->get_error_data( $error_code );
+		$type = empty( $data ) || ! is_string( $data ) ? 'error' : $data;
+
+		$message = wp_kses(
+			implode( '<br>', $error->get_error_messages( $error_code ) ),
+			array(
+				'a'    => array( 'href' ),
+				'br'   => array(),
+				'code' => array(),
+				'em'   => array(),
+			)
+		);
+
+		add_settings_error( 'polylang', $error_code, $message, $type );
+	}
 }

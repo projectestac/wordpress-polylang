@@ -227,7 +227,7 @@ class PLL_CRUD_Posts {
 
 	/**
 	 * Called when a post, page or media is deleted
-	 * Don't delete translations if this is a post revision thanks to AndyDeGroo who catched this bug
+	 * Don't delete translations if this is a post revision thanks to AndyDeGroo who caught this bug
 	 * http://wordpress.org/support/topic/plugin-polylang-quick-edit-still-breaks-translation-linking-of-pages-in-072
 	 *
 	 * @since 0.1
@@ -355,12 +355,20 @@ class PLL_CRUD_Posts {
 	 * @return void
 	 */
 	public function force_tags_translation( $post_id, $post_after, $post_before ) {
-		$post_before = $post_before->to_array();
-
-		if ( ! empty( $post_before['tags_input'] ) ) {
-			// Let's ensure that `PLL_CRUD_Posts::set_object_terms()` will do its job.
-			wp_set_post_tags( $post_id, $post_before['tags_input'] );
+		if ( ! is_object_in_taxonomy( $post_before->post_type, 'post_tag' ) ) {
+			return;
 		}
+
+		$terms = get_the_terms( $post_before, 'post_tag' );
+
+		if ( empty( $terms ) || ! is_array( $terms ) ) {
+			return;
+		}
+
+		$term_ids = wp_list_pluck( $terms, 'term_id' );
+
+		// Let's ensure that `PLL_CRUD_Posts::set_object_terms()` will do its job.
+		wp_set_post_terms( $post_id, $term_ids, 'post_tag' );
 	}
 
 	/**

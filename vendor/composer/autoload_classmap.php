@@ -93,6 +93,7 @@ return array(
     'PLL_Settings_Licenses' => $baseDir . '/settings/settings-licenses.php',
     'PLL_Settings_Media' => $baseDir . '/settings/settings-media.php',
     'PLL_Settings_Module' => $baseDir . '/settings/settings-module.php',
+    'PLL_Settings_Preview_Machine_Translation' => $baseDir . '/modules/machine-translation/settings-preview-machine-translation.php',
     'PLL_Settings_Preview_Share_Slug' => $baseDir . '/modules/share-slug/settings-preview-share-slug.php',
     'PLL_Settings_Preview_Translate_Slugs' => $baseDir . '/modules/translate-slugs/settings-preview-translate-slugs.php',
     'PLL_Settings_Sync' => $baseDir . '/modules/sync/settings-sync.php',

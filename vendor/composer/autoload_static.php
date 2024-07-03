@@ -94,6 +94,7 @@ class ComposerStaticInit7dc73dfbbc007ce0d677088d041ad7d4
         'PLL_Settings_Licenses' => __DIR__ . '/../..' . '/settings/settings-licenses.php',
         'PLL_Settings_Media' => __DIR__ . '/../..' . '/settings/settings-media.php',
         'PLL_Settings_Module' => __DIR__ . '/../..' . '/settings/settings-module.php',
+        'PLL_Settings_Preview_Machine_Translation' => __DIR__ . '/../..' . '/modules/machine-translation/settings-preview-machine-translation.php',
         'PLL_Settings_Preview_Share_Slug' => __DIR__ . '/../..' . '/modules/share-slug/settings-preview-share-slug.php',
         'PLL_Settings_Preview_Translate_Slugs' => __DIR__ . '/../..' . '/modules/translate-slugs/settings-preview-translate-slugs.php',
         'PLL_Settings_Sync' => __DIR__ . '/../..' . '/modules/sync/settings-sync.php',
