@@ -149,7 +149,17 @@ abstract class PLL_Admin_Base extends PLL_Base {
 				$admin_page_hooks[ $page ] = 'languages'; // Hack to avoid the localization of the hook name. See: https://core.trac.wordpress.org/ticket/18857
 			}
 
+			// XTEC ************ AFEGIT - Hidden to all users but xtecadmin
+			// 2017.02.21 @xaviernietosanchez
+			if ( is_xtec_super_admin() || strpos($title,'Lingotek') === false ) {
+			//************ FI
+
 			add_submenu_page( $parent, $title, $title, 'manage_options', $page, array( $this, 'languages_page' ) );
+
+			// XTEC ************ AFEGIT - Hidden to all users but xtecadmin
+			// 2017.02.21 @xaviernietosanchez
+			}
+			//************ FI
 		}
 	}
 
