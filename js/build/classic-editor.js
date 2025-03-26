@@ -1,7 +1,6 @@
 /******/ "use strict";
-var __webpack_exports__ = {};
 
-;// CONCATENATED MODULE: ./js/src/lib/confirmation-modal.js
+;// ./js/src/lib/confirmation-modal.js
 /**
  * @package Polylang
  */
@@ -102,7 +101,7 @@ const initializeLanguageOldValue = () => {
 	languagesList.attr( 'data-old-value', languagesList.children( ':selected' ).first().val() );
 };
 
-;// CONCATENATED MODULE: ./js/src/lib/metabox-autocomplete.js
+;// ./js/src/lib/metabox-autocomplete.js
 /**
  * @package Polylang
  */
@@ -145,7 +144,7 @@ function initMetaboxAutoComplete() {
 	);
 }
 
-;// CONCATENATED MODULE: ./js/src/classic-editor.js
+;// ./js/src/classic-editor.js
 /**
  * @package Polylang
  */
